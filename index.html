@@ -332,7 +332,7 @@
 
     <!-- 스크립트 영역 (Firebase 클라우드 연동) -->
     <script>
-        // 🔥 Realtime Database URL이 포함된 정확한 Firebase 설정
+        // 🔥 싱가포르 실시간 데이터베이스 URL이 적용된 최종 설정
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
             authDomain: "chat-bad67.firebaseapp.com",
@@ -340,7 +340,7 @@
             storageBucket: "chat-bad67.firebasestorage.app",
             messagingSenderId: "555148224571",
             appId: "1:555148224571:web:73e8bdf53be14982ba941e",
-            databaseURL: "https://chat-bad67-default-rtdb.firebaseio.com"
+            databaseURL: "https://chat-bad67-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
         try {
@@ -351,8 +351,8 @@
             console.error("Firebase initialization error", e);
         }
 
-        const db = firebase.firestore();      // 회원가입 및 미니게임 랭킹 클라우드 공유용
-        const rtdb = firebase.database();     // 실시간 오픈 채팅용
+        const db = firebase.firestore();      
+        const rtdb = firebase.database();     
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
@@ -461,7 +461,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 회원가입 제출 (Firebase Firestore 클라우드 영구 저장) ---
+            // --- 회원가입 제출 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
                 const age = document.getElementById('regAge').value;
@@ -492,7 +492,7 @@
                 }
             });
 
-            // --- 팀원 매칭 (온라인 클라우드 데이터 기준 조회) ---
+            // --- 팀원 매칭 ---
             document.getElementById('submitMatch')?.addEventListener('click', async () => {
                 const prefAge = document.getElementById('matchAge').value;
                 const prefGender = document.getElementById('matchGender').value;
@@ -531,7 +531,7 @@
                 }
             });
 
-            // --- Firebase 실시간 오픈 채팅 연동 (오류 방지 및 안정화 적용) ---
+            // --- Firebase 실시간 오픈 채팅 연동 ---
             const chatMessages = document.getElementById('chatMessages');
             const chatMsgInput = document.getElementById('chatMsgInput');
             const chatNameInput = document.getElementById('chatNameInput');
@@ -557,13 +557,16 @@
                 if (e.key === 'Enter') sendChatBtn.click();
             });
 
-            rtdb.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
+            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
+                chatMessages.innerHTML = '';
                 const data = snapshot.val();
                 if (data) {
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = 'chat-msg';
-                    msgDiv.innerHTML = `<span>${data.name}:</span> ${data.text}`;
-                    chatMessages.appendChild(msgDiv);
+                    Object.values(data).forEach(msg => {
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = 'chat-msg';
+                        msgDiv.innerHTML = `<span>${msg.name}:</span> ${msg.text}`;
+                        chatMessages.appendChild(msgDiv);
+                    });
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
             });
