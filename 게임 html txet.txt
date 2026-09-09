@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 미니게임 파티</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK (v9 호환 버전) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <!-- ☰ 사이드바 열기 버튼 -->
+    <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+
+    <!-- 📌 오른쪽 사이드바 -->
+    <div id="sidebar" class="sidebar">
+        <button id="closeSidebar" class="close-sidebar">&times;</button>
+        <h2>보드게임</h2>
+        <ul>
+            <li><a href="#" id="sideSignup">📝 회원가입</a></li>
+            <li><a href="#" id="sideRandom">🎲 랜덤 게임 추천</a></li>
+            <li><a href="#" id="sideMatch">🤝 팀원 찾기</a></li>
+            <li><a href="#" id="sideChat">💬 실시간 오픈 채팅</a></li>
+        </ul>
+        <h2>미니 게임</h2>
+        <ul>
+            <li><a href="#" id="sideDino">🦖 Dino Run</a></li>
+            <li><a href="#" id="sideBrick">🧱 벽돌 깨기</a></li>
+            <li><a href="#" id="sideFlappy">🐦 플래피 버드</a></li>
+            <li><a href="#" id="sideSnake">🐍 스네이크</a></li>
+            <li><a href="#" id="sideMemory">🃏 카드 짝맞추기</a></li>
+        </ul>
+        <h2>🏆 랭킹 보기</h2>
+        <ul>
+            <li><a href="#" id="rankDino">🦖 Dino Run 랭킹</a></li>
+            <li><a href="#" id="rankBrick">🧱 벽돌 깨기 랭킹</a></li>
+            <li><a href="#" id="rankFlappy">🐦 플래피 버드 랭킹</a></li>
+            <li><a href="#" id="rankSnake">🐍 스네이크 랭킹</a></li>
+            <li><a href="#" id="rankMemory">🃏 카드 짝맞추기 랭킹</a></li>
+        </ul>
+    </div>
+
+    <!-- 메인 컨테이너 (홈 화면) -->
+    <div class="container">
+        <h1>🎮 미니게임 파티</h1>
+        <div class="button-group">
+            <button id="btnDino">🦖 Dino Run</button>
+            <button id="btnBrick">🧱 벽돌 깨기</button>
+            <button id="btnFlappy">🐦 플래피 버드</button>
+            <button id="btnSnake">🐍 스네이크</button>
+            <button id="btnMemory">🃏 카드 짝맞추기</button>
+        </div>
+    </div>
+
+    <!-- 회원가입 모달창 -->
+    <div id="signupModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>회원가입</h2>
+            <input type="text" id="regName" placeholder="이름을 입력하세요">
+            <input type="number" id="regAge" placeholder="나이를 입력하세요 (예: 25)">
+            <select id="regGender">
+                <option value="" disabled selected>성별 선택</option>
+                <option value="남성">남성</option>
+                <option value="여성">여성</option>
+            </select>
+            <select id="regGame">
+                <option value="" disabled selected>좋아하는 게임 유형</option>
+                <option value="가벼운 게임">가벼운 게임</option>
+                <option value="심리전">심리전</option>
+                <option value="전략 게임">전략 게임</option>
+                <option value="순발력 게임">순발력 게임</option>
+                <option value="다 좋아요">다 좋아요</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="submitSignup">가입완료</button>
+                <button class="close-btn" onclick="closeModal('signupModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 랜덤 게임 추천 결과 모달창 -->
+    <div id="randomModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h2>🎲 랜덤 게임 추천</h2>
+            <div id="randomResult" style="margin: 20px 0; font-size: 18px;"></div>
+            <div class="modal-buttons" style="justify-content: center;">
+                <button class="close-btn" style="width: 100%;" onclick="closeModal('randomModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 팀원 찾기 조건 입력 모달창 -->
+    <div id="matchModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>팀원 찾기 (조건 선택)</h2>
+            <input type="number" id="matchAge" placeholder="선호하는 나이 (예: 25)">
+            <select id="matchGender">
+                <option value="" disabled selected>선호하는 성별</option>
+                <option value="남성">남성</option>
+                <option value="여성">여성</option>
+                <option value="상관없음">상관없음</option>
+            </select>
+            <select id="matchGame">
+                <option value="" disabled selected>선호하는 게임 유형</option>
+                <option value="가벼운 게임">가벼운 게임</option>
+                <option value="심리전">심리전</option>
+                <option value="전략 게임">전략 게임</option>
+                <option value="순발력 게임">순발력 게임</option>
+                <option value="다 좋아요">다 좋아요</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="submitMatch">매칭 시작</button>
+                <button class="close-btn" onclick="closeModal('matchModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 팀원 매칭 결과 모달창 -->
+    <div id="matchResultModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h2>🤝 매칭 결과</h2>
+            <div id="matchResultText" style="margin: 20px 0; font-size: 16px; line-height: 1.5;"></div>
+            <div class="modal-buttons" style="justify-content: center;">
+                <button class="close-btn" style="width: 100%; background-color: #4CAF50;" onclick="closeModal('matchResultModal')">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💬 실시간 오픈 채팅 모달창 -->
+    <div id="chatModal" class="modal hidden">
+        <div class="modal-content chat-content">
+            <h2>💬 실시간 오픈 채팅</h2>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chatNameInput" placeholder="이름" style="width: 30%;">
+                <input type="text" id="chatMsgInput" placeholder="메시지를 입력하세요..." style="width: 55%;">
+                <button id="sendChatBtn" style="width: 12%; background-color: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">전송</button>
+            </div>
+            <div class="modal-buttons" style="margin-top: 10px; justify-content: center;">
+                <button class="close-btn" style="width: 100%;" onclick="closeModal('chatModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏆 랭킹 등록 모달창 -->
+    <div id="scoreInputModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h2>🏆 게임 종료!</h2>
+            <p id="scoreInputDesc" style="font-size: 14px; color: #555; margin: 10px 0; line-height: 1.4;"></p>
+            <input type="text" id="rankingNickname" placeholder="닉네임을 입력하세요" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px;">
+            <div class="modal-buttons" style="justify-content: space-between;">
+                <button id="submitRankingBtn" style="background-color: #4CAF50; color: white;">등록하기</button>
+                <button class="close-btn" onclick="closeModal('scoreInputModal')">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏆 미니게임 통합 랭킹 보기 모달창 -->
+    <div id="rankingModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center; width: 380px;">
+            <h2 id="rankingGameTitle">🏆 랭킹 TOP 3</h2>
+            <div id="rankingList" style="margin: 20px 0; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px;"></div>
+            <div class="modal-buttons" style="justify-content: center;">
+                <button class="close-btn" style="width: 100%; background-color: #4CAF50;" onclick="closeModal('rankingModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 미니게임 모달창들 -->
+    <div id="dinoModal" class="modal hidden">
+        <div class="modal-content dino-content">
+            <h2>🦖 Dino Run</h2>
+            <p>스페이스바 또는 화면을 클릭하여 점프하세요!</p>
+            <canvas id="dinoCanvas" width="400" height="150"></canvas>
+            <h3 id="dinoScore">Score: 0</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startDino">게임 시작</button>
+                <button class="close-btn" onclick="closeDinoModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="brickModal" class="modal hidden">
+        <div class="modal-content dino-content">
+            <h2>🧱 벽돌 깨기</h2>
+            <p>마우스로 바를 움직여 벽돌을 깨세요!</p>
+            <canvas id="brickCanvas" width="400" height="300"></canvas>
+            <h3 id="brickScore">Score: 0</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startBrick">게임 시작</button>
+                <button class="close-btn" onclick="closeBrickModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="flappyModal" class="modal hidden">
+        <div class="modal-content dino-content">
+            <h2>🐦 플래피 버드</h2>
+            <p>화면을 클릭하여 파이프를 피하세요!</p>
+            <canvas id="flappyCanvas" width="300" height="400"></canvas>
+            <h3 id="flappyScore">Score: 0</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startFlappy">게임 시작</button>
+                <button class="close-btn" onclick="closeFlappyModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="snakeModal" class="modal hidden">
+        <div class="modal-content dino-content">
+            <h2>🐍 스네이크</h2>
+            <p>방향키(상하좌우)로 뱀을 조종해 사과를 드세요!</p>
+            <canvas id="snakeCanvas" width="300" height="300"></canvas>
+            <h3 id="snakeScore">Score: 0</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startSnake">게임 시작</button>
+                <button class="close-btn" onclick="closeSnakeModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="memoryModal" class="modal hidden">
+        <div class="modal-content dino-content">
+            <h2>🃏 카드 짝맞추기</h2>
+            <p>같은 그림의 카드를 찾아 짝을 맞추세요!</p>
+            <div id="memoryBoard" class="memory-board"></div>
+            <h3 id="memoryScore">시도 횟수: 0</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startMemory">게임 시작</button>
+                <button class="close-btn" onclick="closeMemoryModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
