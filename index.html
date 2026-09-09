@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎮 미니게임 파티</title>
-    <!-- Firebase SDK (실시간 채팅 전용) -->
+    <!-- Firebase SDK (v9 호환 버전) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Pretendard', 'Malgun Gothic', sans-serif; }
@@ -329,9 +330,9 @@
         </div>
     </div>
 
-    <!-- 스크립트 영역 -->
+    <!-- 스크립트 영역 (Firebase 클라우드 연동) -->
     <script>
-        // 🔥 프로젝트 ID 'chat-bad67' 기반 실시간 채팅 설정
+        // 🔥 프로젝트 ID 'chat-bad67' 기반 클라우드 설정 (회원가입, 랭킹, 채팅 통째로 공유)
         const firebaseConfig = {
             apiKey: "AIzaSyDummyKeyForChatOnly",
             authDomain: "chat-bad67.firebaseapp.com",
@@ -350,7 +351,8 @@
             console.error("Firebase initialization error", e);
         }
 
-        const rtdb = firebase.database();     
+        const db = firebase.firestore();      // 회원가입 및 미니게임 랭킹 클라우드 공유용
+        const rtdb = firebase.database();     // 실시간 오픈 채팅용
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
@@ -371,25 +373,23 @@
             if (modal) modal.classList.add('hidden');
         };
 
-        // 🏆 localStorage 기반 미니게임 랭킹 조회 및 표시 함수
-        function fetchAndShowRanking(gameKey, gameName) {
+        // 🏆 온라인 Firestore 기반 미니게임 랭킹 조회 및 표시 함수
+        async function fetchAndShowRanking(gameKey, gameName) {
             try {
-                const allRankings = JSON.parse(localStorage.getItem('minigameRankings') || '{}');
-                const gameRankings = allRankings[gameKey] || [];
+                const snapshot = await db.collection("rankings")
+                    .where("game", "==", gameKey)
+                    .orderBy("score", "desc")
+                    .orderBy("timestamp", "desc")
+                    .limit(3)
+                    .get();
 
-                gameRankings.sort((a, b) => {
-                    if (b.score !== a.score) {
-                        return b.score - a.score;
-                    }
-                    return b.timestamp - a.timestamp;
-                });
-
-                const top3 = gameRankings.slice(0, 3);
                 let rankingHtml = "";
                 let rank = 1;
 
-                top3.forEach((data) => {
+                snapshot.forEach((doc) => {
+                    let data = doc.data();
                     let crown = (rank === 1) ? " 👑" : "";
+
                     rankingHtml += `
                         <div class="ranking-item top-rank">
                             <span>${rank}등: ${data.name}${crown}</span>
@@ -409,11 +409,11 @@
 
             } catch (error) {
                 console.error("랭킹 조회 오류: ", error);
-                alert("랭킹을 불러오는 중 오류가 발생했습니다.");
+                alert("랭킹을 불러오는 중 오류가 발생했습니다. (Firestore 색인이 필요할 수 있습니다)");
             }
         }
 
-        // 🏆 localStorage 기반 게임 종료 시 랭킹 등록
+        // 🏆 온라인 Firestore 기반 게임 종료 시 랭킹 등록
         function saveAndShowRanking(modalId, gameKey, gameName, score) {
             closeModal(modalId);
 
@@ -427,26 +427,21 @@
             const newBtn = submitBtn.cloneNode(true);
             submitBtn.parentNode.replaceChild(newBtn, submitBtn);
 
-            newBtn.addEventListener('click', () => {
+            newBtn.addEventListener('click', async () => {
                 let playerName = document.getElementById('rankingNickname').value.trim();
                 if (!playerName) playerName = "익명";
 
                 closeModal('scoreInputModal');
 
                 try {
-                    const allRankings = JSON.parse(localStorage.getItem('minigameRankings') || '{}');
-                    if (!allRankings[gameKey]) {
-                        allRankings[gameKey] = [];
-                    }
-
-                    allRankings[gameKey].push({
+                    await db.collection("rankings").add({
+                        game: gameKey,
                         name: playerName,
                         score: Number(score),
-                        timestamp: Date.now()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
-                    localStorage.setItem('minigameRankings', JSON.stringify(allRankings));
-                    fetchAndShowRanking(gameKey, gameName);
+                    await fetchAndShowRanking(gameKey, gameName);
                 } catch (error) {
                     console.error("랭킹 저장 오류: ", error);
                     alert("점수를 저장하는 중 오류가 발생했습니다.");
@@ -456,8 +451,8 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 회원가입 제출 (localStorage 영구 저장) ---
-            document.getElementById('submitSignup')?.addEventListener('click', () => {
+            // --- 회원가입 제출 (Firebase Firestore 클라우드 영구 저장) ---
+            document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
                 const age = document.getElementById('regAge').value;
                 const gender = document.getElementById('regGender').value;
@@ -465,45 +460,65 @@
                 
                 if (!name || !age || !gender || !game) return alert("모든 정보를 입력해주세요!");
                 
-                let users = JSON.parse(localStorage.getItem('boardGameUsers') || '[]');
-                users.push({ name, age, gender, favoriteGame: game });
-                localStorage.setItem('boardGameUsers', JSON.stringify(users));
+                try {
+                    await db.collection("users").add({
+                        name: name,
+                        age: age,
+                        gender: gender,
+                        favoriteGame: game,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
 
-                alert(`${name}님 회원가입 완료!`);
-                closeModal('signupModal');
-                
-                document.getElementById('regName').value = '';
-                document.getElementById('regAge').value = '';
-                document.getElementById('regGender').selectedIndex = 0;
-                document.getElementById('regGame').selectedIndex = 0;
+                    alert(`${name}님 온라인 회원가입 완료!`);
+                    closeModal('signupModal');
+                    
+                    document.getElementById('regName').value = '';
+                    document.getElementById('regAge').value = '';
+                    document.getElementById('regGender').selectedIndex = 0;
+                    document.getElementById('regGame').selectedIndex = 0;
+                } catch (error) {
+                    console.error("회원가입 오류: ", error);
+                    alert("회원가입 중 오류가 발생했습니다.");
+                }
             });
 
-            // --- 팀원 매칭 ---
-            document.getElementById('submitMatch')?.addEventListener('click', () => {
+            // --- 팀원 매칭 (온라인 클라우드 데이터 기준 조회) ---
+            document.getElementById('submitMatch')?.addEventListener('click', async () => {
                 const prefAge = document.getElementById('matchAge').value;
                 const prefGender = document.getElementById('matchGender').value;
                 const prefGame = document.getElementById('matchGame').value;
                 
                 if (!prefAge || !prefGender || !prefGame) return alert("조건을 모두 선택해주세요!");
 
-                let users = JSON.parse(localStorage.getItem('boardGameUsers') || '[]');
-                let matchedUsers = users.filter(user => {
-                    let matchCount = 0;
-                    if (user.age === prefAge) matchCount++;
-                    if (user.gender === prefGender || prefGender === '상관없음') matchCount++;
-                    if (user.favoriteGame === prefGame) matchCount++;
-                    return matchCount >= 2;
-                }).map(u => u.name);
+                try {
+                    const querySnapshot = await db.collection("users").get();
+                    let matchedUsers = [];
 
-                const resultTextDiv = document.getElementById('matchResultText');
-                if (matchedUsers.length > 0) {
-                    resultTextDiv.innerHTML = `🎉 <strong>매칭 성공!</strong><br><br>조건에 맞는 팀원:<br><span style="color: #4CAF50; font-weight: bold; font-size: 18px;">${matchedUsers.join(', ')}</span>`;
-                } else {
-                    resultTextDiv.innerHTML = `😢 <strong>매칭 실패</strong><br><br>조건(2개 이상 일치)에 맞는 팀원이 없습니다.`;
+                    querySnapshot.forEach((doc) => {
+                        let user = doc.data();
+                        let matchCount = 0;
+                        if (user.age === prefAge) matchCount++;
+                        if (user.gender === prefGender || prefGender === '상관없음') matchCount++;
+                        if (user.favoriteGame === prefGame) matchCount++;
+                        
+                        if (matchCount >= 2) {
+                            matchedUsers.push(user.name);
+                        }
+                    });
+
+                    const resultTextDiv = document.getElementById('matchResultText');
+                    if (matchedUsers.length > 0) {
+                        resultTextDiv.innerHTML = `🎉 <strong>온라인 매칭 성공!</strong><br><br>조건에 맞는 팀원:<br><span style="color: #4CAF50; font-weight: bold; font-size: 18px;">${matchedUsers.join(', ')}</span>`;
+                    } else {
+                        resultTextDiv.innerHTML = `😢 <strong>매칭 실패</strong><br><br>조건(2개 이상 일치)에 맞는 팀원이 없습니다.`;
+                    }
+
+                    closeModal('matchModal');
+                    openModal('matchResultModal');
+                } catch (error) {
+                    console.error("매칭 오류: ", error);
+                    alert("매칭 중 오류가 발생했습니다.");
                 }
-
-                closeModal('matchModal');
-                openModal('matchResultModal');
             });
 
             // --- Firebase 실시간 오픈 채팅 연동 ---
