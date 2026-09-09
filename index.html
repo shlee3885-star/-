@@ -332,7 +332,7 @@
 
     <!-- 스크립트 영역 (Firebase 클라우드 연동) -->
     <script>
-        // 🔥 프로젝트 ID 'chat-bad67' 기반 실제 Firebase 설정 정보 적용 완료
+        // 🔥 프로젝트 ID 'chat-bad67' 기반 실제 Firebase 클라우드 설정
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
             authDomain: "chat-bad67.firebaseapp.com",
@@ -373,23 +373,32 @@
             if (modal) modal.classList.add('hidden');
         };
 
-        // 🏆 온라인 Firestore 기반 미니게임 랭킹 조회 및 표시 함수
+        // 🏆 온라인 Firestore 기반 미니게임 랭킹 조회 및 표시 함수 (색인 오류 해결 버전)
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings")
                     .where("game", "==", gameKey)
-                    .orderBy("score", "desc")
-                    .orderBy("timestamp", "desc")
-                    .limit(3)
                     .get();
 
+                let rankings = [];
+                snapshot.forEach((doc) => {
+                    rankings.push(doc.data());
+                });
+
+                // 자바스크립트에서 점수 높은 순, 시간 최신순으로 직접 정렬
+                rankings.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0);
+                });
+
+                const top3 = rankings.slice(0, 3);
                 let rankingHtml = "";
                 let rank = 1;
 
-                snapshot.forEach((doc) => {
-                    let data = doc.data();
+                top3.forEach((data) => {
                     let crown = (rank === 1) ? " 👑" : "";
-
                     rankingHtml += `
                         <div class="ranking-item top-rank">
                             <span>${rank}등: ${data.name}${crown}</span>
@@ -409,7 +418,7 @@
 
             } catch (error) {
                 console.error("랭킹 조회 오류: ", error);
-                alert("랭킹을 불러오는 중 오류가 발생했습니다. (Firestore 보안 규칙을 확인해주세요)");
+                alert("랭킹을 불러오는 중 오류가 발생했습니다.");
             }
         }
 
