@@ -332,7 +332,7 @@
 
     <!-- 스크립트 영역 (Firebase 클라우드 연동) -->
     <script>
-        // 🔥 프로젝트 ID 'chat-bad67' 기반 실제 Firebase 클라우드 설정
+        // 🔥 Realtime Database URL이 포함된 정확한 Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
             authDomain: "chat-bad67.firebaseapp.com",
@@ -373,7 +373,7 @@
             if (modal) modal.classList.add('hidden');
         };
 
-        // 🏆 안전한 온라인 Firestore 랭킹 조회 함수 (에러 방지 처리)
+        // 🏆 안전한 온라인 Firestore 랭킹 조회 함수
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings")
@@ -417,7 +417,6 @@
 
             } catch (error) {
                 console.error("랭킹 조회 오류: ", error);
-                // 오류 발생 시 경고창 대신 안내 문구 표시
                 document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
                 document.getElementById('rankingList').innerHTML = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
                 openModal('rankingModal');
@@ -532,7 +531,7 @@
                 }
             });
 
-            // --- Firebase 실시간 오픈 채팅 연동 ---
+            // --- Firebase 실시간 오픈 채팅 연동 (오류 방지 및 안정화 적용) ---
             const chatMessages = document.getElementById('chatMessages');
             const chatMsgInput = document.getElementById('chatMsgInput');
             const chatNameInput = document.getElementById('chatNameInput');
@@ -547,6 +546,9 @@
                     name: name,
                     text: message,
                     timestamp: Date.now()
+                }).catch((err) => {
+                    console.error("채팅 전송 실패: ", err);
+                    alert("메시지 전송에 실패했습니다.");
                 });
                 chatMsgInput.value = '';
             });
@@ -557,11 +559,13 @@
 
             rtdb.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
                 const data = snapshot.val();
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'chat-msg';
-                msgDiv.innerHTML = `<span>${data.name}:</span> ${data.text}`;
-                chatMessages.appendChild(msgDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                if (data) {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'chat-msg';
+                    msgDiv.innerHTML = `<span>${data.name}:</span> ${data.text}`;
+                    chatMessages.appendChild(msgDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
             });
 
             // --- 홈 화면 미니게임 버튼 ---
@@ -891,10 +895,6 @@
                     });
 
                     setTimeout(() => {
-                        allCards.exports?.forEach(c => { // 안전 장치
-                            c.classList.remove('flipped');
-                            c.innerText = '';
-                        });
                         allCards.forEach(c => {
                             c.classList.remove('flipped');
                             c.innerText = '';
