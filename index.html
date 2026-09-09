@@ -373,7 +373,7 @@
             if (modal) modal.classList.add('hidden');
         };
 
-        // 🏆 온라인 Firestore 기반 미니게임 랭킹 조회 및 표시 함수 (색인 오류 해결 버전)
+        // 🏆 안전한 온라인 Firestore 랭킹 조회 함수 (에러 방지 처리)
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings")
@@ -385,7 +385,6 @@
                     rankings.push(doc.data());
                 });
 
-                // 자바스크립트에서 점수 높은 순, 시간 최신순으로 직접 정렬
                 rankings.sort((a, b) => {
                     if (b.score !== a.score) {
                         return b.score - a.score;
@@ -418,7 +417,10 @@
 
             } catch (error) {
                 console.error("랭킹 조회 오류: ", error);
-                alert("랭킹을 불러오는 중 오류가 발생했습니다.");
+                // 오류 발생 시 경고창 대신 안내 문구 표시
+                document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
+                document.getElementById('rankingList').innerHTML = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
+                openModal('rankingModal');
             }
         }
 
@@ -889,6 +891,10 @@
                     });
 
                     setTimeout(() => {
+                        allCards.exports?.forEach(c => { // 안전 장치
+                            c.classList.remove('flipped');
+                            c.innerText = '';
+                        });
                         allCards.forEach(c => {
                             c.classList.remove('flipped');
                             c.innerText = '';
