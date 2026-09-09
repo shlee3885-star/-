@@ -4,11 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎮 미니게임 파티</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDK (v9 호환 버전) -->
+    <!-- Firebase SDK (실시간 채팅 전용) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Pretendard', 'Malgun Gothic', sans-serif; }
+
+        body {
+            margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center;
+            background-color: #f4f7f6;
+            background-image: url("data:image/svg+xml,%3Csvg width='250' height='250' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='20' y='50' font-size='40' opacity='0.07'%3E🎲%3C/text%3E%3Ctext x='150' y='90' font-size='35' opacity='0.07'%3E🃏%3C/text%3E%3Ctext x='40' y='170' font-size='45' opacity='0.07'%3E♟️%3C/text%3E%3Ctext x='170' y='210' font-size='35' opacity='0.07'%3E🎯%3C/text%3E%3C/svg%3E");
+            background-repeat: repeat; background-size: 300px 300px;
+        }
+
+        .container {
+            text-align: center; background: rgba(255, 255, 255, 0.95); padding: 40px;
+            border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); z-index: 10;
+        }
+
+        h1 { color: #333; margin-bottom: 30px; }
+
+        .button-group button {
+            display: block; width: 250px; margin: 15px auto; padding: 15px; font-size: 16px;
+            font-weight: bold; color: white; background-color: #4CAF50; border: none;
+            border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .button-group button:hover { background-color: #45a049; transform: translateY(-2px); box-shadow: 0 6px 10px rgba(0,0,0,0.15); }
+
+        /* 사이드바 스타일 */
+        .sidebar-toggle { position: fixed; top: 20px; right: 20px; font-size: 24px; background-color: #333; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; z-index: 999; }
+        .sidebar { 
+            position: fixed; top: 0; right: -260px; width: 260px; height: 100%; 
+            background-color: #ffffff; box-shadow: -4px 0 15px rgba(0,0,0,0.1); 
+            transition: right 0.3s ease; z-index: 1000; padding: 20px; 
+            overflow-y: auto; text-align: left;
+        }
+        .sidebar.open { right: 0; }
+        .close-sidebar { background: transparent; border: none; font-size: 28px; cursor: pointer; color: #333; float: right; }
+        .sidebar h2 { margin-top: 40px; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; color: #4CAF50; }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar ul li { margin: 10px 0; }
+        .sidebar ul li a { text-decoration: none; color: #333; font-weight: bold; display: block; padding: 6px; border-radius: 5px; font-size: 14px; }
+        .sidebar ul li a:hover { background-color: #f1f1f1; color: #2196F3; padding-left: 10px; }
+
+        /* 모달창 및 캔버스 스타일 */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 320px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; }
+        .dino-content { width: 450px; text-align: center; }
+
+        /* 실시간 채팅창 전용 스타일 */
+        .chat-content { width: 420px; }
+        .chat-messages {
+            width: 100%; height: 250px; border: 1px solid #ddd; border-radius: 5px;
+            background-color: #f9f9f9; padding: 10px; overflow-y: auto; text-align: left;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .chat-msg { background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 14px; }
+        .chat-msg span { font-weight: bold; color: #4CAF50; margin-right: 5px; }
+        .chat-input-area { display: flex; gap: 5px; margin-top: 5px; }
+
+        /* 🏆 랭킹 리스트 스타일 */
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            margin: 6px 0;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            font-weight: bold;
+        }
+        .ranking-item.top-rank {
+            background-color: #fffde7;
+            border-color: #ffd54f;
+        }
+
+        #dinoCanvas, #brickCanvas, #flappyCanvas, #snakeCanvas {
+            background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px;
+            display: block; margin: 10px auto; cursor: pointer;
+        }
+
+        /* 카드 짝맞추기 게임 스타일 */
+        .memory-board {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            margin: 10px auto; width: 320px; height: 320px;
+        }
+        .memory-card {
+            background-color: #4CAF50; border-radius: 5px; display: flex;
+            justify-content: center; align-items: center; font-size: 35px; cursor: pointer;
+            color: transparent; transition: background-color 0.3s;
+        }
+        .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
+
+        .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
+        .modal-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
+        .modal-buttons button { padding: 10px; width: 48%; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #submitSignup, #submitMatch, #startDino, #startBrick, #startFlappy, #startSnake, #startMemory { background-color: #2196F3; color: white; }
+        .close-btn { background-color: #f44336; color: white; }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
     <!-- ☰ 사이드바 열기 버튼 -->
@@ -234,6 +329,551 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- 스크립트 영역 -->
+    <script>
+        // 🔥 프로젝트 ID 'chat-bad67' 기반 실시간 채팅 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyForChatOnly",
+            authDomain: "chat-bad67.firebaseapp.com",
+            databaseURL: "https://chat-bad67-default-rtdb.firebaseio.com", 
+            projectId: "chat-bad67",
+            storageBucket: "chat-bad67.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef"
+        };
+
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+        } catch (e) {
+            console.error("Firebase initialization error", e);
+        }
+
+        const rtdb = firebase.database();     
+
+        const games = [
+            { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
+            { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
+            { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
+            { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
+        ];
+
+        window.openModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        };
+
+        // 🏆 localStorage 기반 미니게임 랭킹 조회 및 표시 함수
+        function fetchAndShowRanking(gameKey, gameName) {
+            try {
+                const allRankings = JSON.parse(localStorage.getItem('minigameRankings') || '{}');
+                const gameRankings = allRankings[gameKey] || [];
+
+                gameRankings.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return b.timestamp - a.timestamp;
+                });
+
+                const top3 = gameRankings.slice(0, 3);
+                let rankingHtml = "";
+                let rank = 1;
+
+                top3.forEach((data) => {
+                    let crown = (rank === 1) ? " 👑" : "";
+                    rankingHtml += `
+                        <div class="ranking-item top-rank">
+                            <span>${rank}등: ${data.name}${crown}</span>
+                            <span style="color: #2196F3;">${data.score}점</span>
+                        </div>
+                    `;
+                    rank++;
+                });
+
+                if (rank === 1) {
+                    rankingHtml = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
+                }
+
+                document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
+                document.getElementById('rankingList').innerHTML = rankingHtml;
+                openModal('rankingModal');
+
+            } catch (error) {
+                console.error("랭킹 조회 오류: ", error);
+                alert("랭킹을 불러오는 중 오류가 발생했습니다.");
+            }
+        }
+
+        // 🏆 localStorage 기반 게임 종료 시 랭킹 등록
+        function saveAndShowRanking(modalId, gameKey, gameName, score) {
+            closeModal(modalId);
+
+            document.getElementById('scoreInputDesc').innerHTML = 
+                `게임이 종료되었습니다! (내 기록: <strong>${score}점</strong>)<br>랭킹 등록을 원하시면 닉네임을 입력해주세요.`;
+            
+            document.getElementById('rankingNickname').value = '';
+            openModal('scoreInputModal');
+
+            const submitBtn = document.getElementById('submitRankingBtn');
+            const newBtn = submitBtn.cloneNode(true);
+            submitBtn.parentNode.replaceChild(newBtn, submitBtn);
+
+            newBtn.addEventListener('click', () => {
+                let playerName = document.getElementById('rankingNickname').value.trim();
+                if (!playerName) playerName = "익명";
+
+                closeModal('scoreInputModal');
+
+                try {
+                    const allRankings = JSON.parse(localStorage.getItem('minigameRankings') || '{}');
+                    if (!allRankings[gameKey]) {
+                        allRankings[gameKey] = [];
+                    }
+
+                    allRankings[gameKey].push({
+                        name: playerName,
+                        score: Number(score),
+                        timestamp: Date.now()
+                    });
+
+                    localStorage.setItem('minigameRankings', JSON.stringify(allRankings));
+                    fetchAndShowRanking(gameKey, gameName);
+                } catch (error) {
+                    console.error("랭킹 저장 오류: ", error);
+                    alert("점수를 저장하는 중 오류가 발생했습니다.");
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // --- 회원가입 제출 (localStorage 영구 저장) ---
+            document.getElementById('submitSignup')?.addEventListener('click', () => {
+                const name = document.getElementById('regName').value;
+                const age = document.getElementById('regAge').value;
+                const gender = document.getElementById('regGender').value;
+                const game = document.getElementById('regGame').value;
+                
+                if (!name || !age || !gender || !game) return alert("모든 정보를 입력해주세요!");
+                
+                let users = JSON.parse(localStorage.getItem('boardGameUsers') || '[]');
+                users.push({ name, age, gender, favoriteGame: game });
+                localStorage.setItem('boardGameUsers', JSON.stringify(users));
+
+                alert(`${name}님 회원가입 완료!`);
+                closeModal('signupModal');
+                
+                document.getElementById('regName').value = '';
+                document.getElementById('regAge').value = '';
+                document.getElementById('regGender').selectedIndex = 0;
+                document.getElementById('regGame').selectedIndex = 0;
+            });
+
+            // --- 팀원 매칭 ---
+            document.getElementById('submitMatch')?.addEventListener('click', () => {
+                const prefAge = document.getElementById('matchAge').value;
+                const prefGender = document.getElementById('matchGender').value;
+                const prefGame = document.getElementById('matchGame').value;
+                
+                if (!prefAge || !prefGender || !prefGame) return alert("조건을 모두 선택해주세요!");
+
+                let users = JSON.parse(localStorage.getItem('boardGameUsers') || '[]');
+                let matchedUsers = users.filter(user => {
+                    let matchCount = 0;
+                    if (user.age === prefAge) matchCount++;
+                    if (user.gender === prefGender || prefGender === '상관없음') matchCount++;
+                    if (user.favoriteGame === prefGame) matchCount++;
+                    return matchCount >= 2;
+                }).map(u => u.name);
+
+                const resultTextDiv = document.getElementById('matchResultText');
+                if (matchedUsers.length > 0) {
+                    resultTextDiv.innerHTML = `🎉 <strong>매칭 성공!</strong><br><br>조건에 맞는 팀원:<br><span style="color: #4CAF50; font-weight: bold; font-size: 18px;">${matchedUsers.join(', ')}</span>`;
+                } else {
+                    resultTextDiv.innerHTML = `😢 <strong>매칭 실패</strong><br><br>조건(2개 이상 일치)에 맞는 팀원이 없습니다.`;
+                }
+
+                closeModal('matchModal');
+                openModal('matchResultModal');
+            });
+
+            // --- Firebase 실시간 오픈 채팅 연동 ---
+            const chatMessages = document.getElementById('chatMessages');
+            const chatMsgInput = document.getElementById('chatMsgInput');
+            const chatNameInput = document.getElementById('chatNameInput');
+            const sendChatBtn = document.getElementById('sendChatBtn');
+
+            sendChatBtn?.addEventListener('click', () => {
+                const name = chatNameInput.value.trim() || "익명";
+                const message = chatMsgInput.value.trim();
+                if (!message) return;
+
+                rtdb.ref('messages').push({
+                    name: name,
+                    text: message,
+                    timestamp: Date.now()
+                });
+                chatMsgInput.value = '';
+            });
+
+            chatMsgInput?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatBtn.click();
+            });
+
+            rtdb.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'chat-msg';
+                msgDiv.innerHTML = `<span>${data.name}:</span> ${data.text}`;
+                chatMessages.appendChild(msgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+
+            // --- 홈 화면 미니게임 버튼 ---
+            document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
+            document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
+            document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
+            document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
+            document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
+
+            // --- 사이드바 제어 ---
+            const sidebar = document.getElementById('sidebar');
+            document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
+            document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
+
+            const bindSidebarAction = (btnId, action) => {
+                document.getElementById(btnId)?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    action();
+                    sidebar?.classList.remove('open');
+                });
+            };
+
+            bindSidebarAction('sideSignup', () => openModal('signupModal'));
+            bindSidebarAction('sideRandom', () => {
+                const selectedGame = games[Math.floor(Math.random() * games.length)];
+                const resultDiv = document.getElementById('randomResult');
+                if (resultDiv) {
+                    resultDiv.innerHTML = `<strong>오늘의 추천 게임: ${selectedGame.title}</strong><br><br><a href="${selectedGame.link}" target="_blank" style="color: #1a73e8; text-decoration: none; font-weight: bold;">👉 게임 소개 보러가기</a>`;
+                }
+                openModal('randomModal');
+            });
+            bindSidebarAction('sideMatch', () => openModal('matchModal'));
+            bindSidebarAction('sideChat', () => openModal('chatModal'));
+
+            bindSidebarAction('sideDino', () => openModal('dinoModal'));
+            bindSidebarAction('sideBrick', () => openModal('brickModal'));
+            bindSidebarAction('sideFlappy', () => openModal('flappyModal'));
+            bindSidebarAction('sideSnake', () => openModal('snakeModal'));
+            bindSidebarAction('sideMemory', () => openModal('memoryModal'));
+
+            // 사이드바 랭킹 메뉴 바인딩
+            bindSidebarAction('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
+            bindSidebarAction('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
+            bindSidebarAction('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
+            bindSidebarAction('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
+            bindSidebarAction('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
+
+            // =================== 미니게임 실행 로직 ===================
+
+            // 1. 공룡 게임
+            const dinoCanvas = document.getElementById('dinoCanvas');
+            if (dinoCanvas) {
+                const dCtx = dinoCanvas.getContext('2d');
+                let dinoTimer = 0, dinoScore = 0, cactusArray = [], dinoAnimation, isDinoPlaying = false, nextSpawnTimer = 0;
+                
+                const dino = {
+                    x: 30, y: 110, width: 24, height: 26, dy: 0, jumpPower: 11, gravity: 0.6, isJumping: false,
+                    draw() {
+                        dCtx.fillStyle = '#4CAF50'; dCtx.fillRect(this.x+10, this.y, 14, 12); dCtx.fillRect(this.x+4, this.y+10, 16, 12); dCtx.fillRect(this.x, this.y+10, 4, 4);
+                        dCtx.fillStyle = 'white'; dCtx.fillRect(this.x+18, this.y+2, 3, 3); dCtx.fillStyle = '#4CAF50';
+                        if (!this.isJumping) {
+                            if (Math.floor(dinoTimer/8)%2 === 0) { dCtx.fillRect(this.x+6, this.y+22, 4, 4); dCtx.fillRect(this.x+14, this.y+22, 4, 1); }
+                            else { dCtx.fillRect(this.x+6, this.y+22, 4, 1); dCtx.fillRect(this.x+14, this.y+22, 4, 4); }
+                        } else {
+                            dCtx.fillRect(this.x+6, this.y+22, 4, 2); dCtx.fillRect(this.x+14, this.y+22, 4, 2);
+                        }
+                    }
+                };
+
+                class Cactus {
+                    constructor() { this.width = 12+Math.random()*8; this.height = 20+Math.random()*20; this.x = 400; this.y = 140-this.height; }
+                    draw() { dCtx.fillStyle = '#f44336'; dCtx.fillRect(this.x, this.y, this.width, this.height); }
+                }
+
+                window.closeDinoModal = function() { closeModal('dinoModal'); cancelAnimationFrame(dinoAnimation); isDinoPlaying = false; };
+
+                function dinoLoop() {
+                    dinoAnimation = requestAnimationFrame(dinoLoop); dinoTimer++;
+                    dCtx.clearRect(0,0,400,150); dCtx.beginPath(); dCtx.moveTo(0,140); dCtx.lineTo(400,140); dCtx.stroke();
+                    if(dinoTimer%5===0) document.getElementById('dinoScore').innerText = `Score: ${++dinoScore}`;
+                    let speed = 3 * Math.min(1.5, 1+Math.floor(dinoScore/200)*0.1);
+                    if(dinoTimer >= nextSpawnTimer) { cactusArray.push(new Cactus()); nextSpawnTimer = dinoTimer + Math.floor((Math.floor(Math.random()*60)+70)/Math.min(1.5, 1+Math.floor(dinoScore/200)*0.1)); }
+                    cactusArray.forEach((c, i, arr) => {
+                        if(c.x < -30) arr.splice(i,1); c.x -= speed;
+                        if(dino.x < c.x+c.width && dino.x+dino.width > c.x && dino.y < c.y+c.height && dino.y+dino.height > c.y) {
+                            cancelAnimationFrame(dinoAnimation); isDinoPlaying = false; 
+                            setTimeout(() => saveAndShowRanking('dinoModal', "dino", "Dino Run", dinoScore), 300);
+                        } c.draw();
+                    });
+                    if(dino.isJumping){ dino.y -= dino.dy; dino.dy -= dino.gravity; if(dino.y >= 110){ dino.y = 110; dino.isJumping = false; dino.dy = 0; } } dino.draw();
+                }
+
+                const doDinoJump = () => { if (!dino.isJumping && isDinoPlaying) { dino.isJumping = true; dino.dy = dino.jumpPower; } };
+                document.addEventListener('keydown', (e) => { if(e.code === 'Space' && !document.getElementById('dinoModal').classList.contains('hidden')) { e.preventDefault(); doDinoJump(); } });
+                dinoCanvas.addEventListener('mousedown', doDinoJump);
+                document.getElementById('startDino')?.addEventListener('click', () => {
+                    if(isDinoPlaying) return; cancelAnimationFrame(dinoAnimation); dinoTimer=0; dinoScore=0; cactusArray=[]; dino.y=110; dino.dy=0; dino.isJumping=false; isDinoPlaying=true; nextSpawnTimer=30; document.getElementById('dinoScore').innerText=`Score: 0`; dinoLoop();
+                });
+            }
+
+            // 2. 벽돌 깨기
+            const brickCanvas = document.getElementById('brickCanvas');
+            if (brickCanvas) {
+                const bCtx = brickCanvas.getContext('2d');
+                let brickAnimation, isBrickPlaying = false, brickScore = 0;
+                let ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }, paddle = { height: 10, width: 75, x: 162.5 };
+                let brickInfo = { row: 4, col: 5, width: 65, height: 20, padding: 10, offsetTop: 30, offsetLeft: 20 }, bricks = [];
+
+                window.closeBrickModal = function() { closeModal('brickModal'); cancelAnimationFrame(brickAnimation); isBrickPlaying = false; };
+                
+                document.addEventListener("mousemove", (e) => {
+                    if(!document.getElementById('brickModal').classList.contains('hidden')){
+                        let relX = e.clientX - brickCanvas.getBoundingClientRect().left;
+                        if(relX > 0 && relX < 400) paddle.x = relX - paddle.width/2;
+                    }
+                });
+
+                function brickLoop() {
+                    brickAnimation = requestAnimationFrame(brickLoop); bCtx.clearRect(0,0,400,300);
+                    for(let c=0; c<brickInfo.col; c++){
+                        for(let r=0; r<brickInfo.row; r++){
+                            if(bricks[c][r].status === 1){
+                                let bX = (c*(brickInfo.width+brickInfo.padding))+brickInfo.offsetLeft, bY = (r*(brickInfo.height+brickInfo.padding))+brickInfo.offsetTop;
+                                bricks[c][r].x = bX; bricks[c][r].y = bY; bCtx.fillStyle = "#2196F3"; bCtx.fillRect(bX, bY, brickInfo.width, brickInfo.height);
+                                if(ball.x > bX && ball.x < bX+brickInfo.width && ball.y > bY && ball.y < bY+brickInfo.height){ ball.dy = -ball.dy; bricks[c][r].status = 0; brickScore++; document.getElementById('brickScore').innerText = `Score: ${brickScore}`; }
+                            }
+                        }
+                    }
+                    bCtx.beginPath(); bCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); bCtx.fillStyle = "#f44336"; bCtx.fill(); bCtx.closePath();
+                    bCtx.fillStyle = "#4CAF50"; bCtx.fillRect(paddle.x, 300-paddle.height, paddle.width, paddle.height);
+                    
+                    if(brickScore === brickInfo.row*brickInfo.col){ 
+                        cancelAnimationFrame(brickAnimation); isBrickPlaying = false; 
+                        setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", brickScore), 300);
+                        return; 
+                    }
+                    if(ball.x+ball.dx > 400-ball.radius || ball.x+ball.dx < ball.radius) ball.dx = -ball.dx;
+                    if(ball.y+ball.dy < ball.radius) ball.dy = -ball.dy;
+                    else if(ball.y+ball.dy > 300-ball.radius){ 
+                        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) ball.dy = -ball.dy; 
+                        else{ 
+                            cancelAnimationFrame(brickAnimation); isBrickPlaying = false; 
+                            setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", brickScore), 300);
+                            return; 
+                        } 
+                    }
+                    ball.x += ball.dx; ball.y += ball.dy;
+                }
+
+                document.getElementById('startBrick')?.addEventListener('click', () => {
+                    if(isBrickPlaying) return; cancelAnimationFrame(brickAnimation); bricks = [];
+                    for(let c=0; c<brickInfo.col; c++){ bricks[c] = []; for(let r=0; r<brickInfo.row; r++) bricks[c][r] = {x:0, y:0, status:1}; }
+                    ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }; paddle.x = 162.5; brickScore = 0; document.getElementById('brickScore').innerText = `Score: 0`; isBrickPlaying = true; brickLoop();
+                });
+            }
+
+            // 3. 플래피 버드
+            const flappyCanvas = document.getElementById('flappyCanvas');
+            if (flappyCanvas) {
+                const fCtx = flappyCanvas.getContext('2d');
+                let flappyAnimation, isFlappyPlaying = false, flappyScore = 0, frames = 0, bird = { x: 50, y: 150, radius: 10, velocity: 0, gravity: 0.3, jump: -5 }, pipes = [];
+                
+                window.closeFlappyModal = function() { closeModal('flappyModal'); cancelAnimationFrame(flappyAnimation); isFlappyPlaying = false; };
+                
+                function gameOverFlappy() {
+                    cancelAnimationFrame(flappyAnimation); isFlappyPlaying = false;
+                    setTimeout(() => saveAndShowRanking('flappyModal', "flappy", "플래피 버드", flappyScore), 300);
+                }
+
+                function flappyLoop() {
+                    flappyAnimation = requestAnimationFrame(flappyLoop); fCtx.clearRect(0,0,300,400); frames++; bird.velocity += bird.gravity; bird.y += bird.velocity;
+                    fCtx.beginPath(); fCtx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2); fCtx.fillStyle = "#E53935"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.arc(bird.x+4, bird.y-3, 3.5, 0, Math.PI*2); fCtx.fillStyle = "white"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.arc(bird.x+5, bird.y-3, 1.5, 0, Math.PI*2); fCtx.fillStyle = "black"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.moveTo(bird.x+8, bird.y); fCtx.lineTo(bird.x+16, bird.y+3); fCtx.lineTo(bird.x+8, bird.y+6); fCtx.fillStyle = "#FFC107"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.ellipse(bird.x-3, bird.y+3, 5, 3, 0, 0, Math.PI*2); fCtx.fillStyle = "#B71C1C"; fCtx.fill(); fCtx.closePath();
+                    
+                    if(frames%100 === 0){ let gap = 120; let pipeY = Math.random()*(400-gap-40)+20; pipes.push({x:300, y:pipeY, width:40, gap:gap, passed:false}); }
+                    pipes.forEach((p, i) => {
+                        p.x -= 2; fCtx.fillStyle = "#4CAF50"; fCtx.fillRect(p.x, 0, p.width, p.y); fCtx.fillRect(p.x, p.y+p.gap, p.width, 400-p.y-p.gap);
+                        if(!p.passed && p.x+p.width < bird.x){ flappyScore++; document.getElementById('flappyScore').innerText = `Score: ${flappyScore}`; p.passed = true; }
+                        if(p.x+p.width < 0) pipes.splice(i,1);
+                        if(bird.x+bird.radius > p.x && bird.x-bird.radius < p.x+p.width && (bird.y-bird.radius < p.y || bird.y+bird.radius > p.y+p.gap)){ gameOverFlappy(); }
+                    });
+                    if(bird.y+bird.radius >= 400 || bird.y-bird.radius <= 0){ gameOverFlappy(); }
+                }
+                
+                flappyCanvas.addEventListener('mousedown', () => { if(isFlappyPlaying) bird.velocity = bird.jump; });
+                document.getElementById('startFlappy')?.addEventListener('click', () => { if(isFlappyPlaying) return; cancelAnimationFrame(flappyAnimation); bird.y=150; bird.velocity=0; pipes=[]; flappyScore=0; frames=0; document.getElementById('flappyScore').innerText=`Score: 0`; isFlappyPlaying=true; flappyLoop(); });
+            }
+
+            // 4. 스네이크 게임
+            const snakeCanvas = document.getElementById('snakeCanvas');
+            if (snakeCanvas) {
+                const sCtx = snakeCanvas.getContext('2d');
+                let snakeArr, appleObj, snakeScore, snakeDx, snakeDy, snakeInterval, isSnakePlaying = false, currentSpeed = 200;
+                
+                window.closeSnakeModal = function() { closeModal('snakeModal'); clearTimeout(snakeInterval); isSnakePlaying = false; };
+                
+                function drawSnake() {
+                    sCtx.clearRect(0,0,300,300); 
+                    
+                    sCtx.fillStyle = '#f44336'; 
+                    sCtx.beginPath(); sCtx.arc(appleObj.x + 7.5, appleObj.y + 7.5, 7.5, 0, Math.PI * 2); sCtx.fill(); sCtx.closePath();
+
+                    snakeArr.forEach((part, index) => {
+                        if (index === 0) {
+                            sCtx.fillStyle = '#2E7D32'; sCtx.fillRect(part.x, part.y, 15, 15);
+                            sCtx.fillStyle = 'white';
+                            if (snakeDx > 0) {
+                                sCtx.fillRect(part.x + 10, part.y + 2, 3, 3); sCtx.fillRect(part.x + 10, part.y + 10, 3, 3);
+                                sCtx.fillStyle = 'black'; sCtx.fillRect(part.x + 12, part.y + 3, 1, 1); sCtx.fillRect(part.x + 12, part.y + 11, 1, 1);
+                            } else if (snakeDx < 0) {
+                                sCtx.fillRect(part.x + 2, part.y + 2, 3, 3); sCtx.fillRect(part.x + 2, part.y + 10, 3, 3);
+                                sCtx.fillStyle = 'black'; sCtx.fillRect(part.x + 2, part.y + 3, 1, 1); sCtx.fillRect(part.x + 2, part.y + 11, 1, 1);
+                            } else if (snakeDy < 0) {
+                                sCtx.fillRect(part.x + 2, part.y + 2, 3, 3); sCtx.fillRect(part.x + 10, part.y + 2, 3, 3);
+                                sCtx.fillStyle = 'black'; sCtx.fillRect(part.x + 3, part.y + 2, 1, 1); sCtx.fillRect(part.x + 11, part.y + 2, 1, 1);
+                            } else {
+                                sCtx.fillRect(part.x + 2, part.y + 10, 3, 3); sCtx.fillRect(part.x + 10, part.y + 10, 3, 3);
+                                sCtx.fillStyle = 'black'; sCtx.fillRect(part.x + 3, part.y + 12, 1, 1); sCtx.fillRect(part.x + 11, part.y + 12, 1, 1);
+                            }
+                        } else {
+                            sCtx.fillStyle = '#4CAF50'; sCtx.fillRect(part.x + 1, part.y + 1, 13, 13);
+                        }
+                    });
+
+                    let headX = snakeArr[0].x + snakeDx, headY = snakeArr[0].y + snakeDy;
+                    if(headX < 0 || headX >= 300 || headY < 0 || headY >= 300 || snakeArr.some(p => p.x === headX && p.y === headY)){
+                        isSnakePlaying = false; 
+                        setTimeout(() => saveAndShowRanking('snakeModal', "snake", "스네이크", snakeScore), 300);
+                        return;
+                    }
+                    snakeArr.unshift({x: headX, y: headY});
+                    
+                    if(headX === appleObj.x && headY === appleObj.y){ 
+                        snakeScore+=10; 
+                        document.getElementById('snakeScore').innerText = `Score: ${snakeScore}`; 
+                        appleObj = { x: (Math.floor(Math.random() * 18) + 1) * 15, y: (Math.floor(Math.random() * 18) + 1) * 15 }; 
+                        currentSpeed = Math.max(100, currentSpeed * 0.9);
+                    }
+                    else {
+                        snakeArr.pop();
+                    }
+
+                    if (isSnakePlaying) {
+                        snakeInterval = setTimeout(drawSnake, currentSpeed);
+                    }
+                }
+                
+                document.addEventListener('keydown', e => {
+                    if(!document.getElementById('snakeModal').classList.contains('hidden') && isSnakePlaying){
+                        if(e.key === 'ArrowUp' && snakeDy === 0){ snakeDx=0; snakeDy=-15; }
+                        if(e.key === 'ArrowDown' && snakeDy === 0){ snakeDx=0; snakeDy=15; }
+                        if(e.key === 'ArrowLeft' && snakeDx === 0){ snakeDx=-15; snakeDy=0; }
+                        if(e.key === 'ArrowRight' && snakeDx === 0){ snakeDx=15; snakeDy=0; }
+                        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+                    }
+                });
+                
+                document.getElementById('startSnake')?.addEventListener('click', () => {
+                    if(isSnakePlaying) return; 
+                    clearTimeout(snakeInterval); 
+                    snakeArr = [{x: 150, y: 150}]; 
+                    snakeDx = 15; snakeDy = 0; snakeScore = 0; currentSpeed = 200; 
+                    document.getElementById('snakeScore').innerText = `Score: 0`; 
+                    appleObj = { x: (Math.floor(Math.random() * 18) + 1) * 15, y: (Math.floor(Math.random() * 18) + 1) * 15 }; 
+                    isSnakePlaying = true; 
+                    drawSnake();
+                });
+            }
+
+            // 5. 카드 짝맞추기 게임
+            const memoryBoard = document.getElementById('memoryBoard');
+            if (memoryBoard) {
+                const cardIcons = ['🎲', '🎲', '🃏', '🃏', '♟️', '♟️', '🎯', '🎯', '🧩', '🧩', '🏆', '🏆', '🎪', '🎪', '🕹️', '🕹️'];
+                let firstCard = null, secondCard = null, lockBoard = false, memoryAttempts = 0, matchedPairs = 0;
+                
+                window.closeMemoryModal = function() { closeModal('memoryModal'); };
+                
+                function flipCard() {
+                    if(lockBoard || this === firstCard) return;
+                    this.classList.add('flipped'); this.innerText = this.dataset.icon;
+                    
+                    if(!firstCard) { firstCard = this; return; }
+                    
+                    secondCard = this; lockBoard = true; memoryAttempts++;
+                    document.getElementById('memoryScore').innerText = `시도 횟수: ${memoryAttempts}`;
+                    
+                    if(firstCard.dataset.icon === secondCard.dataset.icon){
+                        matchedPairs++; 
+                        firstCard.removeEventListener('click', flipCard); 
+                        secondCard.removeEventListener('click', flipCard); 
+                        [firstCard, secondCard, lockBoard] = [null, null, false];
+                        
+                        if(matchedPairs === 8) {
+                            setTimeout(() => {
+                                saveAndShowRanking('memoryModal', "memory", "카드 짝맞추기", 100 - memoryAttempts);
+                            }, 300);
+                        }
+                    } else {
+                        setTimeout(() => { 
+                            firstCard.classList.remove('flipped'); firstCard.innerText = ''; 
+                            secondCard.classList.remove('flipped'); secondCard.innerText = ''; 
+                            [firstCard, secondCard, lockBoard] = [null, null, false]; 
+                        }, 800);
+                    }
+                }
+                
+                document.getElementById('startMemory')?.addEventListener('click', () => {
+                    memoryBoard.innerHTML = ''; 
+                    memoryAttempts = 0; 
+                    matchedPairs = 0; 
+                    document.getElementById('memoryScore').innerText = `시도 횟수: 0`; 
+                    
+                    [firstCard, secondCard, lockBoard] = [null, null, true]; 
+                    const allCards = [];
+
+                    cardIcons.sort(() => Math.random() - 0.5).forEach(icon => {
+                        const card = document.createElement('div'); 
+                        card.classList.add('memory-card', 'flipped');
+                        card.dataset.icon = icon;
+                        card.innerText = icon; 
+                        card.addEventListener('click', flipCard); 
+                        memoryBoard.appendChild(card);
+                        allCards.push(card);
+                    });
+
+                    setTimeout(() => {
+                        allCards.forEach(c => {
+                            c.classList.remove('flipped');
+                            c.innerText = '';
+                        });
+                        lockBoard = false;
+                    }, 2000);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
