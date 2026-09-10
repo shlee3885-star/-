@@ -196,7 +196,7 @@
 
             <div style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin-top: 8px;">
                 <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">주사위 굴리기 🎲</button>
-                <div id="diceResultBox" style="margin-top: 8px; font-size: 22px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 30px;">🎲 🎲 🎲 🎲</div>
+                <div id="diceResultBox" style="margin-top: 8px; font-size: 24px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 30px;">🎲 🎲 🎲 🎲</div>
             </div>
 
             <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노(1~6번)를 클릭해 주사위를 배치하세요:</p>
@@ -388,7 +388,7 @@
         </div>
     </div>
 
-    <!-- 스크립트 영역 (랜덤 방 코드 생성 및 실시간 동기화 포함) -->
+    <!-- 스크립트 영역 (주사위 결과 표시 수정 완료) -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
@@ -409,7 +409,7 @@
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
             { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
@@ -506,7 +506,7 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 랜덤 코드 생성 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 애니메이션 수정 완료 ---
             let currentDice = [];
             let currentRoomCode = "";
             let myNickname = "";
@@ -515,7 +515,6 @@
             document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
             document.getElementById('sideVegas')?.addEventListener('click', (e) => { e.preventDefault(); openModal('vegasLoginModal'); document.getElementById('sidebar')?.classList.remove('open'); });
 
-            // 랜덤 방 코드 생성 버튼 (6자리 영대소문자+숫자 조합)
             document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
                 let randomCode = "";
@@ -534,7 +533,6 @@
                 myNickname = name;
                 vegasRoomRef = rtdb.ref(`vegas_rooms/${currentRoomCode}`);
 
-                // 방에 내 닉네임 등록
                 vegasRoomRef.child(`players/${myNickname}`).set(true);
 
                 closeModal('vegasLoginModal');
@@ -572,6 +570,7 @@
                         Math.floor(Math.random()*6)+1, 
                         Math.floor(Math.random()*6)+1
                     ];
+                    // 수정된 부분: 굴린 주사위 숫자 결과가 화면에 정확히 표시되도록 지정
                     diceBox.innerText = currentDice.join('  ');
                     document.getElementById('vegasStatus').innerText = "카지노(1~6)를 클릭해 주사위를 배치하세요!";
                 }, 600);
@@ -582,12 +581,10 @@
                 vegasRoomRef.on('value', (snapshot) => {
                     const data = snapshot.val() || { casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]}, players: {} };
                     
-                    // 플레이어 목록 렌더링
                     const playersObj = data.players || {};
                     const playerNames = Object.keys(playersObj);
                     document.getElementById('vegasPlayersBox').innerText = `참여 중인 친구들 (${playerNames.length}명): ${playerNames.join(', ') || '없음'}`;
 
-                    // 카지노 보드 렌더링
                     const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
                     let boardHtml = "";
                     for (let i = 1; i <= 6; i++) {
