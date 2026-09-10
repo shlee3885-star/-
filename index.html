@@ -233,7 +233,7 @@
         </div>
     </div>
 
-    <!-- 기존 모달들 (회원가입, 랭킹, 미니게임 등) -->
+    <!-- 기존 모달들 -->
     <div id="signupModal" class="modal hidden">
         <div class="modal-content">
             <h2>회원가입</h2>
@@ -397,7 +397,7 @@
         </div>
     </div>
 
-    <!-- 스크립트 영역 -->
+    <!-- 스크립트 영역 (안전성 강화) -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
@@ -426,54 +426,9 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 랭킹 함수
-        async function fetchAndShowRanking(gameKey, gameName) {
-            try {
-                const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
-                let rankings = [];
-                snapshot.forEach((doc) => rankings.push(doc.data()));
-                rankings.sort((a, b) => (b.score !== a.score) ? b.score - a.score : (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-
-                const top3 = rankings.slice(0, 3);
-                let rankingHtml = ""; let rank = 1;
-                top3.forEach((data) => {
-                    let crown = (rank === 1) ? " 👑" : "";
-                    rankingHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${data.name}${crown}</span><span style="color: #2196F3;">${data.score}점</span></div>`;
-                    rank++;
-                });
-                if (rank === 1) rankingHtml = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
-
-                document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
-                document.getElementById('rankingList').innerHTML = rankingHtml;
-                openModal('rankingModal');
-            } catch (error) {
-                document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
-                document.getElementById('rankingList').innerHTML = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
-                openModal('rankingModal');
-            }
-        }
-
-        function saveAndShowRanking(modalId, gameKey, gameName, score) {
-            closeModal(modalId);
-            document.getElementById('scoreInputDesc').innerHTML = `게임 종료! (기록: <strong>${score}점</strong>)<br>닉네임을 입력하세요.`;
-            document.getElementById('rankingNickname').value = '';
-            openModal('scoreInputModal');
-
-            const submitBtn = document.getElementById('submitRankingBtn');
-            const newBtn = submitBtn.cloneNode(true);
-            submitBtn.parentNode.replaceChild(newBtn, submitBtn);
-
-            newBtn.addEventListener('click', async () => {
-                let playerName = document.getElementById('rankingNickname').value.trim() || "익명";
-                closeModal('scoreInputModal');
-                try {
-                    await db.collection("rankings").add({ game: gameKey, name: playerName, score: Number(score), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                    await fetchAndShowRanking(gameKey, gameName);
-                } catch (error) { alert("점수 저장 실패"); }
-            });
-        }
-
+        // 전역 모달 연결을 먼저 안전하게 선언
         document.addEventListener("DOMContentLoaded", () => {
+            
             // --- 🎵 8비트 레트로 BGM ---
             let audioCtx = null, masterGain = null, isBgmPlaying = false, bgmInterval = null;
             const speakerIcon = document.getElementById('speakerIcon');
@@ -481,7 +436,7 @@
             const upbeatMelody = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 659.25, 587.33, 698.46, 880.00, 1174.66, 880.00, 698.46, 587.33, 698.46];
             let step = 0;
 
-            function initAudio() {
+            speakerIcon?.addEventListener('click', () => {
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     masterGain = audioCtx.createGain();
@@ -489,10 +444,7 @@
                     masterGain.connect(audioCtx.destination);
                 }
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-            }
 
-            speakerIcon?.addEventListener('click', () => {
-                initAudio();
                 if (isBgmPlaying) { isBgmPlaying = false; clearInterval(bgmInterval); speakerIcon.innerText = "🔇"; }
                 else {
                     isBgmPlaying = true; speakerIcon.innerText = "🔊";
@@ -512,7 +464,39 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 🎲 미니 라스베가스 멀티플레이 및 턴제 로직 ---
+            // --- 홈 화면 버튼 및 사이드바 연결 안전 보장 ---
+            document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
+            document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
+            document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
+            document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
+            document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
+
+            const sidebar = document.getElementById('sidebar');
+            document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
+            document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
+
+            const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
+            bindSide('sideSignup', () => openModal('signupModal'));
+            bindSide('sideRandom', () => {
+                const g = games[Math.floor(Math.random() * games.length)];
+                document.getElementById('randomResult').innerHTML = `<strong>추천: ${g.title}</strong><br><br><a href="${g.link}" target="_blank">👉 게임 소개 보기</a>`;
+                openModal('randomModal');
+            });
+            bindSide('sideMatch', () => openModal('matchModal'));
+            bindSide('sideChat', () => openModal('chatModal'));
+            bindSide('sideDino', () => openModal('dinoModal'));
+            bindSide('sideBrick', () => openModal('brickModal'));
+            bindSide('sideFlappy', () => openModal('flappyModal'));
+            bindSide('sideSnake', () => openModal('snakeModal'));
+            bindSide('sideMemory', () => openModal('memoryModal'));
+
+            bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
+            bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
+            bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
+            bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
+            bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
+
+            // --- 🎲 미니 라스베가스 멀티플레이 및 턴제 시스템 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -520,7 +504,7 @@
             let isRollingState = false;
 
             document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
-            document.getElementById('sideVegas')?.addEventListener('click', (e) => { e.preventDefault(); openModal('vegasLoginModal'); document.getElementById('sidebar')?.classList.remove('open'); });
+            document.getElementById('sideVegas')?.addEventListener('click', (e) => { e.preventDefault(); openModal('vegasLoginModal'); sidebar?.classList.remove('open'); });
 
             document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -544,7 +528,7 @@
 
                 const players = roomData ? (roomData.players || {}) : {};
                 if (Object.keys(players).length >= 8 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 8명)! 다른 방을 이용해주세요.");
+                    return alert("방 인원이 가득 찼습니다 (최대 8명)!");
                 }
 
                 currentRoomCode = roomCode;
@@ -578,7 +562,6 @@
                 closeModal('vegasGameModal');
             };
 
-            // 방장(혹은 누구나)이 게임 시작 버튼을 누를 때
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -587,12 +570,10 @@
 
                 if (playerNames.length === 0) return alert("참여 인원이 없습니다!");
 
-                // 3번 조건: 순서 랜덤 배정 및 카지노 상금 랜덤 생성 (1만~10만 원)
                 const shuffledPlayers = [...playerNames].sort(() => Math.random() - 0.5);
                 
                 let randomPrizes = {};
                 for (let i = 1; i <= 6; i++) {
-                    // 1만 원 ~ 10만 원 사이 만 원 단위 랜덤
                     randomPrizes[i] = (Math.floor(Math.random() * 10) + 1) * 10000;
                 }
 
@@ -615,7 +596,6 @@
                     const data = snapshot.val();
                     if (!data) return;
 
-                    // 대기실 정보 갱신
                     const playersObj = data.players || {};
                     const playerNames = Object.keys(playersObj);
                     let listHtml = "";
@@ -624,7 +604,6 @@
                     });
                     document.getElementById('lobbyPlayersList').innerHTML = listHtml;
 
-                    // 게임이 시작되었으면 대기실 닫고 실게임판 열기
                     if (data.status === 'playing') {
                         if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
                             closeModal('vegasLobbyModal');
@@ -645,13 +624,12 @@
 
                 document.getElementById('myDiceCount').innerText = myRemainingDice;
 
-                // 6번 조건: 주사위가 0개인 사람 자동 건너뛰기 로직 (방장 권한으로 처리 동기화)
                 if (currentTurnPlayer && playerDiceMap[currentTurnPlayer] === 0) {
                     checkAndAdvanceTurn(data);
                 }
 
                 if (currentTurnPlayer === myNickname) {
-                    document.getElementById('gameTurnBox.innerText') = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
+                    document.getElementById('gameTurnBox').innerText = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
                     document.getElementById('gameTurnBox').style.backgroundColor = "#e8f5e9";
                     document.getElementById('rollDiceBtn').disabled = false;
                 } else {
@@ -660,7 +638,6 @@
                     document.getElementById('rollDiceBtn').disabled = true;
                 }
 
-                // 8번 조건: 카지노별 상금 표시 및 배치 현황
                 const prizes = data.prizes || {};
                 const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
                 let boardHtml = "";
@@ -687,7 +664,6 @@
                 const playerDiceMap = data.playerDice || {};
                 let currentIndex = data.currentTurnIndex || 0;
 
-                // 모두가 주사위 0개인지 확인 (7번 조건)
                 const allZero = turnOrder.every(p => playerDiceMap[p] === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -697,18 +673,14 @@
                     return;
                 }
 
-                // 다음 플레이어로 턴 넘기기 (주사위 0개면 스킵)
                 for (let i = 0; i < turnOrder.length; i++) {
                     currentIndex = (currentIndex + 1) % turnOrder.length;
-                    if (playerDiceMap[turnOrder[currentIndex]] > 0) {
-                        break;
-                    }
+                    if (playerDiceMap[turnOrder[currentIndex]] > 0) break;
                 }
 
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 버튼
             document.getElementById('rollDiceBtn')?.addEventListener('click', () => {
                 const diceBox = document.getElementById('diceResultBox');
                 const rollBtn = document.getElementById('rollDiceBtn');
@@ -729,19 +701,17 @@
                         isRollingState = false;
                         diceBox.classList.remove('rolling');
 
-                        // 내 남은 주사위 개수만큼 랜덤 눈 생성
                         currentDice = [];
                         for (let i = 0; i < myCount; i++) {
                             currentDice.push(Math.floor(Math.random() * 6) + 1);
                         }
                         diceBox.innerText = currentDice.join('   ');
-                        rollBtn.innerText = "주사위 굴리기 완료 (카지노를 고르세요)";
+                        rollBtn.innerText = "주사위 굴리기 완료 (카지노 고르기)";
                         rollBtn.disabled = true;
                     }
                 });
             });
 
-            // 5번, 6번 조건: 주사위 배치 및 개수 차감 후 턴 넘김
             window.placeVegasDice = async function(casinoNum) {
                 if (isRollingState || currentDice.length === 0) return alert("먼저 주사위를 굴리고 결과를 확정해주세요!");
 
@@ -760,25 +730,22 @@
                     for (let d of matchingDice) {
                         currentData.casinos[casinoNum].push(myNickname);
                     }
-                    // 주사위 개수 차감
                     currentData.playerDice[myNickname] -= usedCount;
                     return currentData;
                 }, async (error, committed) => {
                     if (committed) {
-                        alert(`${usedCount개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다! (내 남은 주사위: ${playerDiceMap[myNickname] - usedCount}개)`);
+                        alert(`${usedCount}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
                         currentDice = [];
                         document.getElementById('diceResultBox').innerText = "READY";
-                        document.getElementById('rollDiceBtn.innerText') = "주사위 굴리기 🎲";
+                        document.getElementById('rollDiceBtn').innerText = `주사위 굴리기 (남은 주사위: ${playerDiceMap[myNickname] - usedCount}개) 🎲`;
                         document.getElementById('rollDiceBtn').disabled = false;
 
-                        // 턴 넘기기 실행
                         const freshSnap = await vegasRoomRef.once('value');
                         await checkAndAdvanceTurn(freshSnap.val());
                     }
                 });
             };
 
-            // 8, 9, 10, 11, 12번 조건: 최종 정산 및 순위표 계산
             async function calculateFinalResults(data) {
                 closeModal('vegasGameModal');
                 const prizes = data.prizes || {};
@@ -787,33 +754,23 @@
                 let totalEarnings = {};
                 Object.keys(playersObj).forEach(p => totalEarnings[p] = 0);
 
-                // 카지노별 정산
                 for (let i = 1; i <= 6; i++) {
                     const prize = prizes[i] || 0;
                     const diceList = casinos[i] || [];
                     if (diceList.length === 0) continue;
 
-                    // 플레이어별 주사위 개수 집계
                     let counts = {};
-                    diceList.forEach(name => {
-                        counts[name] = (counts[name] || 0) + 1;
-                    });
+                    diceList.forEach(name => { counts[name] = (counts[name] || 0) + 1; });
 
-                    // 10번 조건: 동일 개수 소멸 (동수 주사위 지우기)
                     let countFrequency = {};
-                    Object.values(counts).forEach(cnt => {
-                        countFrequency[cnt] = (countFrequency[cnt] || 0) + 1;
-                    });
+                    Object.values(counts).forEach(cnt => { countFrequency[cnt] = (countFrequency[cnt] || 0) + 1; });
 
                     let validCounts = {};
                     Object.keys(counts).forEach(name => {
                         let cnt = counts[name];
-                        if (countFrequency[cnt] === 1) { // 개수가 겹치지 않는 유일한 개수만 인정
-                            validCounts[name] = cnt;
-                        }
+                        if (countFrequency[cnt] === 1) validCounts[name] = cnt;
                     });
 
-                    // 남은 사람들 중 가장 많이 놓은 사람 순서 정렬 (후순위 당첨 반영)
                     let sortedValid = Object.keys(validCounts).sort((a, b) => validCounts[b] - validCounts[a]);
 
                     if (sortedValid.length > 0) {
@@ -822,7 +779,6 @@
                     }
                 }
 
-                // 돈을 가장 많이 가져간 순서대로 정렬 (11번, 12번 조건)
                 let finalRanking = Object.keys(totalEarnings).sort((a, b) => totalEarnings[b] - totalEarnings[a]);
 
                 let resultHtml = "";
@@ -837,7 +793,7 @@
                 openModal('vegasResultModal');
             }
 
-            // --- 기존 기능 바인딩 ---
+            // --- 회원가입 및 기타 기능 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
                 const age = document.getElementById('regAge').value;
@@ -889,38 +845,7 @@
                 }
             });
 
-            document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
-            document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
-            document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
-            document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
-            document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
-
-            const sidebar = document.getElementById('sidebar');
-            document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
-            document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
-
-            const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
-            bindSide('sideSignup', () => openModal('signupModal'));
-            bindSide('sideRandom', () => {
-                const g = games[Math.floor(Math.random() * games.length)];
-                document.getElementById('randomResult').innerHTML = `<strong>추천: ${g.title}</strong><br><br><a href="${g.link}" target="_blank">👉 게임 소개 보기</a>`;
-                openModal('randomModal');
-            });
-            bindSide('sideMatch', () => openModal('matchModal'));
-            bindSide('sideChat', () => openModal('chatModal'));
-            bindSide('sideDino', () => openModal('dinoModal'));
-            bindSide('sideBrick', () => openModal('brickModal'));
-            bindSide('sideFlappy', () => openModal('flappyModal'));
-            bindSide('sideSnake', () => openModal('snakeModal'));
-            bindSide('sideMemory', () => openModal('memoryModal'));
-
-            bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
-            bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
-            bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
-            bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
-            bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
-
-            // 미니게임 구동 코드들 (공룡, 벽돌 등) 생략 없이 완전 유지
+            // 미니게임 로직들
             const dinoCanvas = document.getElementById('dinoCanvas');
             if (dinoCanvas) {
                 const dCtx = dinoCanvas.getContext('2d');
