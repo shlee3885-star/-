@@ -356,7 +356,7 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 온라인 Firestore 랭킹 조회 함수
+        // 🏆 랭킹 조회 함수
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
@@ -383,7 +383,7 @@
             }
         }
 
-        // 🏆 게임 종료 시 랭킹 등록
+        // 🏆 점수 등록 함수
         function saveAndShowRanking(modalId, gameKey, gameName, score) {
             closeModal(modalId);
             document.getElementById('scoreInputDesc').innerHTML = `게임 종료! (기록: <strong>${score}점</strong>)<br>랭킹 등록을 원하시면 닉네임을 입력해주세요.`;
@@ -413,14 +413,14 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 🎵 8비트 레트로 BGM 신디사이저 ---
+            // --- 🎵 BGM 신디사이저 ---
             let audioCtx = null, masterGain = null, isBgmPlaying = false, bgmInterval = null;
             const speakerIcon = document.getElementById('speakerIcon');
             const volumeSlider = document.getElementById('volumeSlider');
             const upbeatMelody = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 659.25, 587.33, 698.46, 880.00, 1174.66, 880.00, 698.46, 587.33, 698.46];
             let step = 0;
 
-            function initAudio() {
+            speakerIcon?.addEventListener('click', () => {
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     masterGain = audioCtx.createGain();
@@ -428,10 +428,7 @@
                     masterGain.connect(audioCtx.destination);
                 }
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-            }
 
-            speakerIcon?.addEventListener('click', () => {
-                initAudio();
                 if (isBgmPlaying) {
                     isBgmPlaying = false; clearInterval(bgmInterval); speakerIcon.innerText = "🔇";
                 } else {
@@ -538,7 +535,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // =================== 미니게임 5종 완벽 복구 로직 ===================
+            // =================== 미니게임 5종 복원 완료 로직 ===================
 
             // 1. 공룡 게임
             const dinoCanvas = document.getElementById('dinoCanvas');
@@ -629,7 +626,7 @@
                 });
             }
 
-            // 3. 플래피 버드
+            // 3. 플래피 버드 (디자인 개선된 버전)
             const flappyCanvas = document.getElementById('flappyCanvas');
             if (flappyCanvas) {
                 const fCtx = flappyCanvas.getContext('2d');
@@ -638,7 +635,12 @@
                 function gameOverFlappy() { cancelAnimationFrame(flappyAnimation); isFlappyPlaying = false; setTimeout(() => saveAndShowRanking('flappyModal', "flappy", "플래피 버드", flappyScore), 300); }
                 function flappyLoop() {
                     flappyAnimation = requestAnimationFrame(flappyLoop); fCtx.clearRect(0,0,300,400); frames++; bird.velocity += bird.gravity; bird.y += bird.velocity;
+                    // 새 디자인
                     fCtx.beginPath(); fCtx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2); fCtx.fillStyle = "#E53935"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.arc(bird.x+4, bird.y-3, 3.5, 0, Math.PI*2); fCtx.fillStyle = "white"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.arc(bird.x+5, bird.y-3, 1.5, 0, Math.PI*2); fCtx.fillStyle = "black"; fCtx.fill(); fCtx.closePath();
+                    fCtx.beginPath(); fCtx.moveTo(bird.x+8, bird.y); fCtx.lineTo(bird.x+16, bird.y+3); fCtx.lineTo(bird.x+8, bird.y+6); fCtx.fillStyle = "#FFC107"; fCtx.fill(); fCtx.closePath();
+                    
                     if(frames%100 === 0){ let gap = 120; let pipeY = Math.random()*(400-gap-40)+20; pipes.push({x:300, y:pipeY, width:40, gap:gap, passed:false}); }
                     pipes.forEach((p, i) => {
                         p.x -= 2; fCtx.fillStyle = "#4CAF50"; fCtx.fillRect(p.x, 0, p.width, p.y); fCtx.fillRect(p.x, p.y+p.gap, p.width, 400-p.y-p.gap);
@@ -652,7 +654,7 @@
                 document.getElementById('startFlappy')?.addEventListener('click', () => { if(isFlappyPlaying) return; cancelAnimationFrame(flappyAnimation); bird.y=150; bird.velocity=0; pipes=[]; flappyScore=0; frames=0; document.getElementById('flappyScore').innerText=`Score: 0`; isFlappyPlaying=true; flappyLoop(); });
             }
 
-            // 4. 스네이크 게임
+            // 4. 스네이크 게임 (디자인 개선된 버전)
             const snakeCanvas = document.getElementById('snakeCanvas');
             if (snakeCanvas) {
                 const sCtx = snakeCanvas.getContext('2d');
@@ -660,8 +662,16 @@
                 window.closeSnakeModal = function() { closeModal('snakeModal'); clearTimeout(snakeInterval); isSnakePlaying = false; };
                 function drawSnake() {
                     sCtx.clearRect(0,0,300,300); 
-                    sCtx.fillStyle = '#f44336'; sCtx.fillRect(appleObj.x, appleObj.y, 15, 15);
-                    snakeArr.forEach((part) => { sCtx.fillStyle = '#4CAF50'; sCtx.fillRect(part.x, part.y, 14, 14); });
+                    sCtx.fillStyle = '#f44336'; sCtx.beginPath(); sCtx.arc(appleObj.x + 7.5, appleObj.y + 7.5, 7.5, 0, Math.PI * 2); sCtx.fill(); sCtx.closePath();
+
+                    snakeArr.forEach((part, index) => {
+                        if (index === 0) {
+                            sCtx.fillStyle = '#2E7D32'; sCtx.fillRect(part.x, part.y, 15, 15);
+                        } else {
+                            sCtx.fillStyle = '#4CAF50'; sCtx.fillRect(part.x + 1, part.y + 1, 13, 13);
+                        }
+                    });
+
                     let headX = snakeArr[0].x + snakeDx, headY = snakeArr[0].y + snakeDy;
                     if(headX < 0 || headX >= 300 || headY < 0 || headY >= 300 || snakeArr.some(p => p.x === headX && p.y === headY)){
                         isSnakePlaying = false; setTimeout(() => saveAndShowRanking('snakeModal', "snake", "스네이크", snakeScore), 300); return;
@@ -669,7 +679,8 @@
                     snakeArr.unshift({x: headX, y: headY});
                     if(headX === appleObj.x && headY === appleObj.y){ 
                         snakeScore+=10; document.getElementById('snakeScore').innerText = `Score: ${snakeScore}`; 
-                        appleObj = { x: Math.floor(Math.random()*20)*15, y: Math.floor(Math.random()*20)*15 }; 
+                        appleObj = { x: (Math.floor(Math.random() * 18) + 1) * 15, y: (Math.floor(Math.random() * 18) + 1) * 15 }; 
+                        currentSpeed = Math.max(100, currentSpeed * 0.9);
                     } else { snakeArr.pop(); }
                     if (isSnakePlaying) snakeInterval = setTimeout(drawSnake, currentSpeed);
                 }
@@ -685,7 +696,7 @@
                     if(isSnakePlaying) return; clearTimeout(snakeInterval); 
                     snakeArr = [{x: 150, y: 150}]; snakeDx = 15; snakeDy = 0; snakeScore = 0; currentSpeed = 200; 
                     document.getElementById('snakeScore').innerText = `Score: 0`; 
-                    appleObj = { x: Math.floor(Math.random()*20)*15, y: Math.floor(Math.random()*20)*15 }; 
+                    appleObj = { x: (Math.floor(Math.random() * 18) + 1) * 15, y: (Math.floor(Math.random() * 18) + 1) * 15 }; 
                     isSnakePlaying = true; drawSnake();
                 });
             }
