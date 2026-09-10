@@ -452,7 +452,7 @@
             { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -602,7 +602,7 @@
                 }
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 멀티플레이 마지막 주사위 동기화 수정 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 멀티플레이 마지막 주사위 턴 검증 완화 수정 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -783,7 +783,6 @@
                     diceBox.innerText = "READY";
                 }
 
-                // 모든 플레이어 주사위가 0개인지 철저히 검사 후 종료
                 const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -792,7 +791,6 @@
                     return;
                 }
 
-                // 현재 차례인 사람의 주사위가 0개이면 즉시 다음 사람으로 넘김
                 if (currentTurnPlayer && (playerDiceMap[currentTurnPlayer] || 0) === 0) {
                     checkAndAdvanceTurn(data);
                     return;
@@ -803,7 +801,7 @@
                 if (currentTurnPlayer === myNickname) {
                     document.getElementById('gameTurnBox').innerText = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
                     document.getElementById('gameTurnBox').style.backgroundColor = "#e8f5e9";
-                    rollBtn.classList.add('my-turn-blink'); // 내 차례 알림 깜빡임
+                    rollBtn.classList.add('my-turn-blink');
                 } else {
                     document.getElementById('gameTurnBox').innerText = `⏳ 현재 차례: [ ${currentTurnPlayer} ] 님의 턴입니다.`;
                     document.getElementById('gameTurnBox').style.backgroundColor = "#fff8e1";
@@ -859,7 +857,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (멀티플레이어 동기화 보장)
+            // 주사위 굴리기
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -889,24 +887,23 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용 (마지막 1개 주사위 잔여 갱신 및 턴 락 완벽 해결)
+            // 주사위 배치 및 차감 룰 적용 (마지막 1개 주사위 턴 잠금 완화)
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
                 if (!data) return;
 
-                const turnOrder = data.turnOrder || [];
-                const currentIndex = data.currentTurnIndex || 0;
-
-                if (turnOrder[currentIndex] !== myNickname) {
-                    return alert("지금은 내 차례가 아닙니다!");
-                }
-
+                // 🌟 핵심 수정: 내 주사위를 이미 굴렸다면 턴 검증을 통과시켜 마지막 주사위 배치 락 방지
                 const rolledDiceMap = data.rolledDice || {};
                 const myRolled = rolledDiceMap[myNickname] || [];
 
                 if (myRolled.length === 0) {
+                    const turnOrder = data.turnOrder || [];
+                    const currentIndex = data.currentTurnIndex || 0;
+                    if (turnOrder[currentIndex] !== myNickname) {
+                        return alert("지금은 내 차례가 아닙니다!");
+                    }
                     return alert("먼저 주사위를 굴려주세요!");
                 }
 
@@ -1212,7 +1209,7 @@
                 }
                 document.getElementById('startMemory')?.addEventListener('click', () => {
                     memoryBoard.innerHTML = ''; memoryAttempts = 0; matchedPairs = 0; 
-                    document.getElementById('memoryScore').innerText = `시도 횟수: 0`; 
+                    document.getElementById('myDiceCount').innerText = `시도 횟수: 0`; 
                     [firstCard, secondCard, lockBoard] = [null, null, true]; 
                     const allCards = [];
                     cardIcons.sort(() => Math.random() - 0.5).forEach(icon => {
