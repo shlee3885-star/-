@@ -107,13 +107,13 @@
     </style>
 </head>
 <body>
-    <!-- 🎵 레트로 배경음악 제어 영역 -->
+    <!-- 🎵 스피커 아이콘 및 볼륨 조절 영역 -->
     <div style="position: fixed; top: 20px; left: 20px; z-index: 999; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 14px; font-weight: bold; color: #333;">🎵 BGM</span>
+        <span id="speakerIcon" style="font-size: 18px; cursor: pointer;" title="클릭하여 재생/음소거">🔇</span>
         <audio id="bgm" loop>
             <source src="https://opengameart.org/sites/default/files/Chiptune_Loop.ogg" type="audio/ogg">
         </audio>
-        <button id="bgmToggleBtn" style="padding: 4px 10px; font-size: 12px; font-weight: bold; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">재생</button>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.5" style="width: 80px; cursor: pointer;" title="음량 조절">
     </div>
 
     <!-- ☰ 사이드바 열기 버튼 -->
@@ -470,26 +470,39 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 🎵 레트로 BGM 제어 로직 ---
+            // --- 🎵 스피커 아이콘 및 볼륨 슬라이더 제어 로직 ---
             const bgm = document.getElementById('bgm');
-            const bgmToggleBtn = document.getElementById('bgmToggleBtn');
+            const speakerIcon = document.getElementById('speakerIcon');
+            const volumeSlider = document.getElementById('volumeSlider');
             let isBgmPlaying = false;
 
-            bgmToggleBtn?.addEventListener('click', () => {
+            bgm.volume = 0.5; // 초기 음량 50%
+
+            speakerIcon?.addEventListener('click', () => {
                 if (isBgmPlaying) {
                     bgm.pause();
-                    bgmToggleBtn.innerText = "재생";
-                    bgmToggleBtn.style.backgroundColor = "#4CAF50";
+                    speakerIcon.innerText = "🔇";
                     isBgmPlaying = false;
                 } else {
                     bgm.play().then(() => {
-                        bgmToggleBtn.innerText = "음소거";
-                        bgmToggleBtn.style.backgroundColor = "#f44336";
+                        speakerIcon.innerText = "🔊";
                         isBgmPlaying = true;
                     }).catch(e => {
                         console.log("재생 실패:", e);
-                        alert("오디오 재생을 지원하지 않거나 차단되었습니다.");
+                        alert("오디오 재생을 지원하지 않거나 브라우저에서 차단되었습니다.");
                     });
+                }
+            });
+
+            volumeSlider?.addEventListener('input', (e) => {
+                bgm.volume = e.target.value;
+                if (bgm.volume == 0) {
+                    speakerIcon.innerText = "🔇";
+                } else if (!isBgmPlaying) {
+                    speakerIcon.innerText = "🔊";
+                    bgm.play().then(() => { isBgmPlaying = true; }).catch(() => {});
+                } else {
+                    speakerIcon.innerText = "🔊";
                 }
             });
 
