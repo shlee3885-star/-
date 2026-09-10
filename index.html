@@ -259,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 랜덤 게임 추천 결과 모달창 -->
+    <!-- 랜덤 게임 추천 모달창 -->
     <div id="randomModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 랜덤 게임 추천</h2>
@@ -560,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 고정 오류 완벽 해결 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 1개 남았을 때 루프 버그 최종 수정 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -702,6 +702,7 @@
                     diceBox.innerText = "READY";
                 }
 
+                // 모든 플레이어 주사위가 0개인지 철저히 검사 후 종료
                 const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -710,6 +711,7 @@
                     return;
                 }
 
+                // 현재 차례인 사람의 주사위가 0개이면 즉시 다음 사람으로 넘김
                 if (currentTurnPlayer && (playerDiceMap[currentTurnPlayer] || 0) === 0) {
                     checkAndAdvanceTurn(data);
                     return;
@@ -764,7 +766,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (남은 개수만큼 완벽한 무작위 눈금 생성)
+            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
