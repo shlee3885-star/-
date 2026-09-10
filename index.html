@@ -196,7 +196,8 @@
 
             <div style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin-top: 8px;">
                 <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">주사위 굴리기 🎲</button>
-                <div id="diceResultBox" style="margin-top: 8px; font-size: 24px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 30px;">[ 🎲 🎲 🎲 🎲 ]</div>
+                <!-- 숫자가 명확하게 출력되도록 단순화된 박스 -->
+                <div id="diceResultBox" style="margin-top: 10px; font-size: 26px; font-weight: bold; letter-spacing: 12px; color: #d32f2f; min-height: 35px;">READY</div>
             </div>
 
             <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노(1~6번)를 클릭해 주사위를 배치하세요:</p>
@@ -506,7 +507,7 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 결과 출력 정상화 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 텍스트 출력 최종 수정 ---
             let currentDice = [];
             let currentRoomCode = "";
             let myNickname = "";
@@ -554,13 +555,13 @@
                 }
                 closeModal('vegasModal');
                 currentDice = [];
-                document.getElementById('diceResultBox').innerText = "[ 🎲 🎲 🎲 🎲 ]";
+                document.getElementById('diceResultBox').innerText = "READY";
             };
 
             document.getElementById('rollDiceBtn')?.addEventListener('click', () => {
                 const diceBox = document.getElementById('diceResultBox');
                 diceBox.classList.add('rolling');
-                diceBox.innerText = "[ 🎲 🎲 🎲 🎲 ]";
+                diceBox.innerText = "🎲 🎲 🎲 🎲";
                 document.getElementById('vegasStatus').innerText = "주사위가 데굴데굴 구르는 중... 🎲";
 
                 setTimeout(() => {
@@ -571,8 +572,8 @@
                         Math.floor(Math.random()*6)+1, 
                         Math.floor(Math.random()*6)+1
                     ];
-                    // 확실히 문자열 형태로 변환하여 화면에 렌더링
-                    diceBox.innerText = "[ " + currentDice.join('  ') + " ]";
+                    // 확실히 숫자가 화면에 표시되도록 텍스트 갱신
+                    diceBox.innerText = currentDice.join('   ');
                     document.getElementById('vegasStatus').innerText = "카지노(1~6)를 클릭해 주사위를 배치하세요!";
                 }, 600);
             });
@@ -626,7 +627,7 @@
                     if (committed) {
                         alert(`${matchingDice.length}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
                         currentDice = [];
-                        document.getElementById('diceResultBox').innerText = "[ 🎲 🎲 🎲 🎲 ]";
+                        document.getElementById('diceResultBox').innerText = "READY";
                         document.getElementById('vegasStatus').innerText = "주사위를 다 쓰셨습니다. 다시 굴려보세요.";
                     }
                 });
