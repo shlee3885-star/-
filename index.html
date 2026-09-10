@@ -26,7 +26,7 @@
         h1 { color: #333; margin-bottom: 30px; }
 
         .button-group button {
-            display: block; width: 250px; margin: 12px auto; padding: 14px; font-size: 16px;
+            display: block; width: 250px; margin: 15px auto; padding: 15px; font-size: 16px;
             font-weight: bold; color: white; background-color: #4CAF50; border: none;
             border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
@@ -48,7 +48,7 @@
         .sidebar ul li a { text-decoration: none; color: #333; font-weight: bold; display: block; padding: 6px; border-radius: 5px; font-size: 14px; }
         .sidebar ul li a:hover { background-color: #f1f1f1; color: #2196F3; padding-left: 10px; }
 
-        /* 모달창 스타일 */
+        /* 모달창 및 캔버스 스타일 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
         .modal-content { background: white; padding: 30px; border-radius: 10px; width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 90vh; overflow-y: auto; }
         .dino-content { width: 450px; text-align: center; }
@@ -99,8 +99,16 @@
             background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
-        .memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px auto; width: 320px; height: 320px; }
-        .memory-card { background-color: #4CAF50; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; color: transparent; transition: background-color 0.3s; }
+        /* 카드 짝맞추기 게임 스타일 */
+        .memory-board {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            margin: 10px auto; width: 320px; height: 320px;
+        }
+        .memory-card {
+            background-color: #4CAF50; border-radius: 5px; display: flex;
+            justify-content: center; align-items: center; font-size: 35px; cursor: pointer;
+            color: transparent; transition: background-color 0.3s;
+        }
         .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
 
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
@@ -213,7 +221,7 @@
                 <div id="diceResultBox">READY</div>
             </div>
 
-            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (1~6번 상금 및 배치 현황):</p>
+            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (1~6번 상금 및 배치 현황 - 클릭하여 배치):</p>
             <div id="casinoBoard" class="casino-grid"></div>
 
             <div class="modal-buttons" style="margin-top: 8px;">
@@ -259,7 +267,7 @@
         </div>
     </div>
 
-    <!-- 랜덤 게임 추천 모달창 -->
+    <!-- 랜덤 게임 추천 결과 모달창 -->
     <div id="randomModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 랜덤 게임 추천</h2>
@@ -270,7 +278,7 @@
         </div>
     </div>
 
-    <!-- 팀원 찾기 모달창 -->
+    <!-- 팀원 찾기 조건 입력 모달창 -->
     <div id="matchModal" class="modal hidden">
         <div class="modal-content">
             <h2>팀원 찾기 (조건 선택)</h2>
@@ -307,7 +315,7 @@
         </div>
     </div>
 
-    <!-- 실시간 오픈 채팅 모달창 -->
+    <!-- 💬 실시간 오픈 채팅 모달창 -->
     <div id="chatModal" class="modal hidden">
         <div class="modal-content chat-content">
             <h2>💬 실시간 오픈 채팅</h2>
@@ -560,7 +568,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 멀티플레이 게임 로직 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 배치 로직 (안정화 완료) ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -622,7 +630,6 @@
                 closeModal('vegasGameModal');
             };
 
-            // 방장(혹은 누구나)이 게임 시작 버튼을 누를 때
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -631,16 +638,14 @@
 
                 if (playerNames.length === 0) return alert("참여 인원이 없습니다!");
 
-                // 순서 랜덤 배정
                 const shuffledPlayers = [...playerNames].sort(() => Math.random() - 0.5);
                 
-                // 1번~6번 카지노 상금 랜덤 배정 (1만~10만 원)
+                // 1~6번 카지노 상금 랜덤 배정 (1만~10만 원)
                 let randomPrizes = {};
                 for (let i = 1; i <= 6; i++) {
                     randomPrizes[i] = (Math.floor(Math.random() * 10) + 1) * 10000;
                 }
 
-                // 주사위 4개씩 초기화
                 let initialDice = {};
                 playerNames.forEach(p => initialDice[p] = 4);
 
@@ -688,7 +693,6 @@
 
                 document.getElementById('myDiceCount').innerText = myRemainingDice;
 
-                // 주사위 0개인 플레이어 자동 스킵
                 if (currentTurnPlayer && playerDiceMap[currentTurnPlayer] === 0) {
                     checkAndAdvanceTurn(data);
                 }
@@ -703,23 +707,28 @@
 
                 const prizes = data.prizes || {};
                 const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                let boardHtml = "";
+                let boardContainer = document.getElementById('casinoBoard');
+                boardContainer.innerHTML = "";
 
+                // 동적으로 카지노 카드 생성 후 이벤트 부착 (배치 오류 해결)
                 for (let i = 1; i <= 6; i++) {
                     const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
                     const placedList = casinos[i] || [];
                     let myCount = placedList.filter(n => n === myNickname).length;
 
-                    boardHtml += `
-                        <div class="casino-card" onclick="placeVegasDice(${i})">
-                            <strong style="color: #e65100; font-size: 14px;">[ ${i}번 카지노 ]</strong><br>
-                            <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">💰 ${prizeMoney}</span><br>
-                            <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
-                            <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
-                        </div>
+                    const card = document.createElement('div');
+                    card.className = 'casino-card';
+                    card.innerHTML = `
+                        <strong style="color: #e65100; font-size: 14px;">[ ${i}번 카지노 ]</strong><br>
+                        <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">💰 ${prizeMoney}</span><br>
+                        <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
+                        <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
                     `;
+                    
+                    // 클릭 이벤트 직접 바인딩
+                    card.addEventListener('click', () => placeVegasDice(i));
+                    boardContainer.appendChild(card);
                 }
-                document.getElementById('casinoBoard').innerHTML = boardHtml;
             }
 
             async function checkAndAdvanceTurn(data) {
@@ -727,7 +736,6 @@
                 const playerDiceMap = data.playerDice || {};
                 let currentIndex = data.currentTurnIndex || 0;
 
-                // 모두가 주사위 0개인지 확인
                 const allZero = turnOrder.every(p => playerDiceMap[p] === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
