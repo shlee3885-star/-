@@ -259,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 랜덤 게임 추천 모달창 -->
+    <!-- 랜덤 게임 추천 결과 모달창 -->
     <div id="randomModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 랜덤 게임 추천</h2>
@@ -560,11 +560,10 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 대기실-게임 전환 고정 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 배치 시스템 (철저한 상태 동기화) ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
-            let currentRolledDice = [];
 
             document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -597,7 +596,6 @@
 
                 await vegasRoomRef.child(`players/${myNickname}`).set(true);
 
-                // 모달 전환: 로그인 닫고 대기실 열기
                 closeModal('vegasLoginModal');
                 document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
                 openModal('vegasLobbyModal');
@@ -647,7 +645,8 @@
                     currentTurnIndex: 0,
                     prizes: randomPrizes,
                     casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]},
-                    playerDice: initialDice
+                    playerDice: initialDice,
+                    rolledDice: {} // 플레이어별 현재 굴린 주사위 상태 저장
                 });
             });
 
@@ -666,9 +665,13 @@
                     document.getElementById('lobbyPlayersList').innerHTML = listHtml;
 
                     if (data.status === 'playing') {
-                        closeModal('vegasLobbyModal');
-                        openModal('vegasGameModal');
-                        document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
+                        if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
+                            closeModal('vegasLobbyModal');
+                        }
+                        if (document.getElementById('vegasGameModal').classList.contains('hidden')) {
+                            openModal('vegasGameModal');
+                            document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
+                        }
                         updateGameScreen(data);
                     }
                 });
@@ -679,9 +682,18 @@
                 const currentIndex = data.currentTurnIndex || 0;
                 const currentTurnPlayer = turnOrder[currentIndex];
                 const playerDiceMap = data.playerDice || {};
+                const rolledDiceMap = data.rolledDice || {};
                 const myRemainingDice = playerDiceMap[myNickname] !== undefined ? playerDiceMap[myNickname] : 4;
+                const myRolledDice = rolledDiceMap[myNickname] || [];
 
                 document.getElementById('myDiceCount').innerText = myRemainingDice;
+
+                const diceBox = document.getElementById('diceResultBox');
+                if (myRolledDice.length > 0) {
+                    diceBox.innerText = myRolledDice.join('   ');
+                } else {
+                    diceBox.innerText = "READY";
+                }
 
                 if (currentTurnPlayer && playerDiceMap[currentTurnPlayer] === 0) {
                     checkAndAdvanceTurn(data);
@@ -742,7 +754,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (남은 주사위 개수 적용)
+            // 주사위 굴리기 (Firebase 상태 저장 방식 적용으로 동기화 완벽 보장)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -755,24 +767,28 @@
 
                 const playerDiceMap = data.playerDice || {};
                 const myCount = playerDiceMap[myNickname] || 0;
+                const rolledDiceMap = data.rolledDice || {};
 
                 if (myCount <= 0) return alert("남은 주사위가 없습니다!");
+                if (rolledDiceMap[myNickname] && rolledDiceMap[myNickname].length > 0) {
+                    return alert("이미 주사위를 굴렸습니다! 카지노를 선택하여 배치하세요.");
+                }
 
                 const diceBox = document.getElementById('diceResultBox');
                 diceBox.classList.add('rolling');
                 diceBox.innerText = "🎲 🎲 🎲 🎲";
 
-                setTimeout(() => {
+                setTimeout(async () => {
                     diceBox.classList.remove('rolling');
-                    currentRolledDice = [];
+                    let newRolled = [];
                     for (let i = 0; i < myCount; i++) {
-                        currentRolledDice.push(Math.floor(Math.random() * 6) + 1);
+                        newRolled.push(Math.floor(Math.random() * 6) + 1);
                     }
-                    diceBox.innerText = currentRolledDice.join('   ');
+                    await vegasRoomRef.child(`rolledDice/${myNickname}`).set(newRolled);
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용
+            // 주사위 배치 및 차감 룰 적용 (Firebase 트랜잭션 연동)
             window.placeVegasDice = async function(casinoNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -782,11 +798,15 @@
                 if (turnOrder[currentIndex] !== myNickname) {
                     return alert("지금은 내 차례가 아닙니다!");
                 }
-                if (currentRolledDice.length === 0) {
+
+                const rolledDiceMap = data.rolledDice || {};
+                const myRolled = rolledDiceMap[myNickname] || [];
+
+                if (myRolled.length === 0) {
                     return alert("먼저 주사위를 굴려주세요!");
                 }
 
-                const matchingDice = currentRolledDice.filter(d => Number(d) === Number(casinoNum));
+                const matchingDice = myRolled.filter(d => Number(d) === Number(casinoNum));
                 if (matchingDice.length === 0) {
                     return alert(`굴린 주사위 중에 ${casinoNum}번이 없습니다! 다른 카지노를 선택하세요.`);
                 }
@@ -799,13 +819,12 @@
                         currentData.casinos[casinoNum].push(myNickname);
                     }
                     currentData.playerDice[myNickname] -= usedCount;
+                    if (!currentData.rolledDice) currentData.rolledDice = {};
+                    currentData.rolledDice[myNickname] = null; // 굴린 주사위 소모 완료 초기화
                     return currentData;
                 }, async (error, committed) => {
                     if (committed) {
                         alert(`${usedCount}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
-                        currentRolledDice = [];
-                        document.getElementById('diceResultBox').innerText = "READY";
-
                         const freshSnap = await vegasRoomRef.once('value');
                         await checkAndAdvanceTurn(freshSnap.val());
                     }
