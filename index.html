@@ -182,7 +182,7 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 대기실 모달창 (방 전용 채팅 포함) -->
+    <!-- 🎲 라스베가스 대기실 모달창 -->
     <div id="vegasLobbyModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -207,7 +207,7 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 실전 게임 모달창 (방 전용 채팅 포함) -->
+    <!-- 🎲 라스베가스 실전 게임 모달창 -->
     <div id="vegasGameModal" class="modal hidden">
         <div class="modal-content" style="width: 480px; text-align: center;">
             <h2 id="gameRoomTitle" style="margin: 0; font-size: 15px;">🎲 라스베가스 실전</h2>
@@ -320,7 +320,7 @@
         </div>
     </div>
 
-    <!-- 💬 실시간 오픈 채팅 모달창 (기존 원복 완료) -->
+    <!-- 💬 실시간 오픈 채팅 모달창 -->
     <div id="chatModal" class="modal hidden">
         <div class="modal-content chat-content">
             <h2>💬 실시간 오픈 채팅</h2>
@@ -441,10 +441,10 @@
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -594,7 +594,7 @@
                 }
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 방 전용 실시간 채팅 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 1개 처리 안정화 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -645,7 +645,6 @@
                 });
             });
 
-            // 방 전용 채팅 전송 함수
             function sendRoomChatMessage(inputId) {
                 const inputElem = document.getElementById(inputId);
                 const text = inputElem.value.trim();
@@ -846,6 +845,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
+            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -875,6 +875,7 @@
                 }, 500);
             });
 
+            // 주사위 배치 및 차감 룰 적용 (마지막 1~2개 잔여 주사위 소모 시 턴 락 완벽 방어)
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
