@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 미니게임 파티 & 라스베가스 멀티</title>
+    <title>🎮 미니게임 파티 & 라스베가스</title>
     <!-- Firebase SDK (v9 호환 버전) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -26,7 +26,7 @@
         h1 { color: #333; margin-bottom: 30px; }
 
         .button-group button {
-            display: block; width: 250px; margin: 15px auto; padding: 15px; font-size: 16px;
+            display: block; width: 250px; margin: 12px auto; padding: 14px; font-size: 16px;
             font-weight: bold; color: white; background-color: #4CAF50; border: none;
             border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
@@ -48,9 +48,9 @@
         .sidebar ul li a { text-decoration: none; color: #333; font-weight: bold; display: block; padding: 6px; border-radius: 5px; font-size: 14px; }
         .sidebar ul li a:hover { background-color: #f1f1f1; color: #2196F3; padding-left: 10px; }
 
-        /* 모달창 및 캔버스 스타일 */
+        /* 모달창 스타일 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
-        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 380px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 90vh; overflow-y: auto; }
         .dino-content { width: 450px; text-align: center; }
 
         /* 실시간 채팅창 전용 스타일 */
@@ -66,10 +66,10 @@
 
         /* 라스베가스 카지노 판 스타일 */
         .casino-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 5px 0;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0;
         }
         .casino-card {
-            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s;
+            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s;
         }
         .casino-card:hover { background: #ffe0b2; transform: scale(1.03); }
 
@@ -81,10 +81,13 @@
             75% { transform: rotate(-10deg) scale(1.05); }
             100% { transform: rotate(0deg) scale(1); }
         }
-        .rolling { animation: diceShake 0.4s ease infinite; color: #d32f2f !important; }
+        .rolling {
+            animation: diceShake 0.4s ease infinite;
+            color: #d32f2f !important;
+        }
         #diceResultBox {
-            background: white; border: 2px dashed #4CAF50; border-radius: 6px; padding: 6px;
-            margin-top: 5px; font-size: 22px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 38px;
+            background: white; border: 2px dashed #4CAF50; border-radius: 6px; padding: 8px;
+            margin-top: 8px; font-size: 24px; font-weight: bold; letter-spacing: 8px; color: #333; min-height: 45px;
             display: flex; justify-content: center; align-items: center;
         }
 
@@ -99,16 +102,8 @@
             background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
-        /* 카드 짝맞추기 게임 스타일 */
-        .memory-board {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            margin: 10px auto; width: 320px; height: 320px;
-        }
-        .memory-card {
-            background-color: #4CAF50; border-radius: 5px; display: flex;
-            justify-content: center; align-items: center; font-size: 35px; cursor: pointer;
-            color: transparent; transition: background-color 0.3s;
-        }
+        .memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px auto; width: 320px; height: 320px; }
+        .memory-card { background-color: #4CAF50; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; color: transparent; transition: background-color 0.3s; }
         .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
 
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
@@ -120,7 +115,7 @@
     </style>
 </head>
 <body>
-    <!-- 🎵 8비트 레트로 BGM 신디사이저 영역 -->
+    <!-- 🎵 8비트 레트로 BGM 스피커 & 볼륨 조절 영역 -->
     <div style="position: fixed; top: 20px; left: 20px; z-index: 999; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;">
         <span id="speakerIcon" style="font-size: 18px; cursor: pointer;" title="클릭하여 재생/음소거">🔇</span>
         <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.3" style="width: 80px; cursor: pointer;" title="음량 조절">
@@ -171,18 +166,18 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 로그인/방 생성 모달창 -->
+    <!-- 🎲 라스베가스 방 입장 모달창 -->
     <div id="vegasLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 미니 라스베가스</h2>
-            <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 8명)</p>
+            <p style="font-size: 13px; color: #666;">랜덤 방 코드를 만들거나, 친구의 코드를 입력하세요!</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="vegasRoomCode" placeholder="방 코드 입력" style="flex: 1;">
                 <button id="randomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="vegasNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
             <div class="modal-buttons">
-                <button id="joinVegasRoomBtn" style="background-color: #ff9800; color: white; width: 100%;">대기실 입장하기</button>
+                <button id="joinVegasRoomBtn" style="background-color: #ff9800; color: white; width: 100%;">방 입장하기</button>
             </div>
             <div class="modal-buttons" style="margin-top: 5px;">
                 <button class="close-btn" style="width: 100%;" onclick="closeModal('vegasLoginModal')">닫기</button>
@@ -190,53 +185,24 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 대기실 모달창 -->
-    <div id="vegasLobbyModal" class="modal hidden">
-        <div class="modal-content" style="text-align: center;">
+    <!-- 🎲 라스베가스 게임 판 모달창 -->
+    <div id="vegasModal" class="modal hidden">
+        <div class="modal-content" style="width: 420px; text-align: center;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="lobbyTitle" style="margin: 0; font-size: 18px;">🎲 라스베가스 대기실</h2>
-                <button id="copyLobbyCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
+                <h2 id="vegasRoomTitle" style="margin: 0; font-size: 18px;">🎲 라스베가스</h2>
+                <button id="copyRoomCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
             </div>
-            <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; text-align: left; margin: 10px 0;">
-                <strong>참여 중인 플레이어 (최대 8명):</strong>
-                <ul id="lobbyPlayersList" style="margin: 8px 0 0 20px; padding: 0; font-size: 14px; color: #333;"></ul>
+            <div id="vegasPlayersBox" style="font-size: 12px; color: #388e3c; background: #e8f5e9; padding: 6px; border-radius: 4px; margin-top: 5px;">
+                참여 중인 친구들: 불러오는 중...
             </div>
-            <div class="modal-buttons">
-                <button id="startGameBtn" style="background-color: #4CAF50; color: white; width: 100%; padding: 12px;">게임 시작하기 🚀</button>
-            </div>
-            <div class="modal-buttons" style="margin-top: 5px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasLobby()">나가기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 실게임 판 모달창 -->
-    <div id="vegasGameModal" class="modal hidden">
-        <div class="modal-content" style="width: 440px; text-align: center;">
-            <h2 id="gameRoomTitle" style="margin: 0; font-size: 16px;">🎲 라스베가스 실전</h2>
-            <div id="gameTurnBox" style="font-size: 13px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 6px; border-radius: 4px;">턴 정보 로딩 중...</div>
-
-            <div style="background: #f1f8e9; padding: 10px; border-radius: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
+            <div style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin-top: 8px;">
+                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">주사위 굴리기 🎲</button>
                 <div id="diceResultBox">READY</div>
             </div>
-
-            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (1~6번 상금 및 배치 현황):</p>
+            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노(1~6번)를 클릭해 주사위를 배치하세요:</p>
             <div id="casinoBoard" class="casino-grid"></div>
-
-            <div class="modal-buttons" style="margin-top: 8px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasGame()">게임 포기 및 나가기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 최종 결과 및 순위표 모달창 -->
-    <div id="vegasResultModal" class="modal hidden">
-        <div class="modal-content" style="text-align: center; width: 400px;">
-            <h2>🏆 최종 게임 결과 & 순위표</h2>
-            <div id="finalScoreBoard" style="margin: 15px 0; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 14px; max-height: 250px; overflow-y: auto;"></div>
-            <div class="modal-buttons">
-                <button class="close-btn" style="width: 100%; background-color: #4CAF50;" onclick="closeModal('vegasResultModal')">확인</button>
+            <div class="modal-buttons" style="margin-top: 10px;">
+                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasRoom()">방 나가기</button>
             </div>
         </div>
     </div>
@@ -442,7 +408,7 @@
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EA%B6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
             { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
@@ -452,7 +418,7 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 온라인 Firestore 랭킹 조회 함수
+        // 🏆 랭킹 조회 함수
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
@@ -548,7 +514,167 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 회원가입 및 팀원 매칭 ---
+            // --- 📌 메인 홈 화면 버튼 바인딩 (누락되었던 부분 완벽 복구) ---
+            document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
+            document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
+            document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
+            document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
+            document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
+            document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
+
+            // --- 사이드바 제어 ---
+            const sidebar = document.getElementById('sidebar');
+            document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
+            document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
+
+            const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
+            bindSide('sideVegas', () => openModal('vegasLoginModal'));
+            bindSide('sideSignup', () => openModal('signupModal'));
+            bindSide('sideRandom', () => {
+                const g = games[Math.floor(Math.random() * games.length)];
+                document.getElementById('randomResult').innerHTML = `<strong>추천: ${g.title}</strong><br><br><a href="${g.link}" target="_blank">👉 게임 소개 보기</a>`;
+                openModal('randomModal');
+            });
+            bindSide('sideMatch', () => openModal('matchModal'));
+            bindSide('sideChat', () => openModal('chatModal'));
+            bindSide('sideDino', () => openModal('dinoModal'));
+            bindSide('sideBrick', () => openModal('brickModal'));
+            bindSide('sideFlappy', () => openModal('flappyModal'));
+            bindSide('sideSnake', () => openModal('snakeModal'));
+            bindSide('sideMemory', () => openModal('memoryModal'));
+
+            bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
+            bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
+            bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
+            bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
+            bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
+
+            // --- 🎲 미니 라스베가스 방 로직 ---
+            let currentRoomCode = "";
+            let myNickname = "";
+            let vegasRoomRef = null;
+            let currentRolledDice = [];
+
+            document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                let randomCode = "";
+                for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+                document.getElementById('vegasRoomCode').value = randomCode;
+            });
+
+            document.getElementById('joinVegasRoomBtn')?.addEventListener('click', async () => {
+                const roomCode = document.getElementById('vegasRoomCode').value.trim();
+                const name = document.getElementById('vegasNickname').value.trim();
+                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
+
+                const roomRef = rtdb.ref(`vegas_rooms/${roomCode}`);
+                const snap = await roomRef.once('value');
+                const roomData = snap.val();
+
+                if (roomData && roomData.status === 'playing') {
+                    return alert("이미 게임이 진행 중인 방입니다!");
+                }
+
+                currentRoomCode = roomCode;
+                myNickname = name;
+                vegasRoomRef = roomRef;
+
+                await vegasRoomRef.child(`players/${myNickname}`).set(true);
+
+                closeModal('vegasLoginModal');
+                document.getElementById('vegasRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
+                openModal('vegasModal');
+                listenVegasRoom();
+            });
+
+            document.getElementById('copyRoomCodeBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(currentRoomCode).then(() => {
+                    alert(`방 코드 [${currentRoomCode}] 복사 완료!`);
+                });
+            });
+
+            window.leaveVegasRoom = function() {
+                if (vegasRoomRef && myNickname) {
+                    vegasRoomRef.child(`players/${myNickname}`).remove();
+                    vegasRoomRef.off();
+                }
+                closeModal('vegasModal');
+                currentRolledDice = [];
+                document.getElementById('diceResultBox').innerText = "READY";
+            };
+
+            document.getElementById('rollDiceBtn')?.addEventListener('click', () => {
+                const diceBox = document.getElementById('diceResultBox');
+                diceBox.classList.add('rolling');
+                diceBox.innerText = "🎲 🎲 🎲 🎲";
+
+                setTimeout(() => {
+                    diceBox.classList.remove('rolling');
+                    currentRolledDice = [
+                        Math.floor(Math.random()*6)+1, 
+                        Math.floor(Math.random()*6)+1, 
+                        Math.floor(Math.random()*6)+1, 
+                        Math.floor(Math.random()*6)+1
+                    ];
+                    diceBox.innerText = currentRolledDice.join('   ');
+                }, 500);
+            });
+
+            function listenVegasRoom() {
+                if (!vegasRoomRef) return;
+                vegasRoomRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || { casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]}, players: {} };
+                    
+                    const playersObj = data.players || {};
+                    const playerNames = Object.keys(playersObj);
+                    document.getElementById('vegasPlayersBox').innerText = `참여 중인 친구들 (${playerNames.length}명): ${playerNames.join(', ') || '없음'}`;
+
+                    const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
+                    let boardHtml = "";
+                    for (let i = 1; i <= 6; i++) {
+                        let placedList = casinos[i] || [];
+                        let myCount = placedList.filter(n => n === myNickname).length;
+                        
+                        boardHtml += `
+                            <div class="casino-card" onclick="placeVegasDice(${i})">
+                                <strong style="color: #e65100;">[ ${i}번 카지노 ]</strong><br>
+                                <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
+                                <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('casinoBoard').innerHTML = boardHtml;
+                });
+            }
+
+            window.placeVegasDice = async function(casinoNum) {
+                if (!myNickname) return;
+                if (currentRolledDice.length === 0) return alert("먼저 주사위를 굴려주세요!");
+
+                const matchingDice = currentRolledDice.filter(d => d === casinoNum);
+                if (matchingDice.length === 0) {
+                    return alert(`굴린 주사위 중에 ${casinoNum}번이 없습니다! 다른 카지노를 선택하세요.`);
+                }
+
+                vegasRoomRef.transaction((currentData) => {
+                    if (!currentData) currentData = { casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]}, players: {} };
+                    if (!currentData.casinos) currentData.casinos = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
+                    if (!currentData.casinos[casinoNum]) currentData.casinos[casinoNum] = [];
+
+                    for (let d of matchingDice) {
+                        currentData.casinos[casinoNum].push(myNickname);
+                    }
+                    return currentData;
+                }, (error, committed) => {
+                    if (committed) {
+                        alert(`${matchingDice.length}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
+                        currentRolledDice = [];
+                        document.getElementById('diceResultBox').innerText = "READY";
+                    }
+                });
+            };
+
+            // --- 회원가입 및 미니게임 구동 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
                 const age = document.getElementById('regAge').value;
@@ -579,62 +705,6 @@
                     closeModal('matchModal'); openModal('matchResultModal');
                 } catch (e) { alert("매칭 오류"); }
             });
-
-            // --- 실시간 오픈 채팅 ---
-            const chatMessages = document.getElementById('chatMessages');
-            const chatMsgInput = document.getElementById('chatMsgInput');
-            const chatNameInput = document.getElementById('chatNameInput');
-            document.getElementById('sendChatBtn')?.addEventListener('click', () => {
-                const name = chatNameInput.value.trim() || "익명"; const text = chatMsgInput.value.trim();
-                if (!text) return;
-                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
-                chatMsgInput.value = '';
-            });
-            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
-                chatMessages.innerHTML = '';
-                const data = snapshot.val();
-                if (data) {
-                    Object.values(data).forEach(msg => {
-                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-            });
-
-            // --- 홈 화면 미니게임 버튼 바인딩 ---
-            document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
-            document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
-            document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
-            document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
-            document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
-
-            // --- 사이드바 제어 ---
-            const sidebar = document.getElementById('sidebar');
-            document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
-            document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
-
-            const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
-            bindSide('sideSignup', () => openModal('signupModal'));
-            bindSide('sideRandom', () => {
-                const g = games[Math.floor(Math.random() * games.length)];
-                document.getElementById('randomResult').innerHTML = `<strong>추천: ${g.title}</strong><br><br><a href="${g.link}" target="_blank">👉 게임 소개 보기</a>`;
-                openModal('randomModal');
-            });
-            bindSide('sideMatch', () => openModal('matchModal'));
-            bindSide('sideChat', () => openModal('chatModal'));
-            bindSide('sideDino', () => openModal('dinoModal'));
-            bindSide('sideBrick', () => openModal('brickModal'));
-            bindSide('sideFlappy', () => openModal('flappyModal'));
-            bindSide('sideSnake', () => openModal('snakeModal'));
-            bindSide('sideMemory', () => openModal('memoryModal'));
-
-            bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
-            bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
-            bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
-            bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
-            bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
-
-            // =================== 미니게임 5종 완벽 구동 로직 ===================
 
             // 1. 공룡 게임
             const dinoCanvas = document.getElementById('dinoCanvas');
@@ -725,7 +795,7 @@
                 });
             }
 
-            // 3. 플래피 버드 (디자인 개선 버전)
+            // 3. 플래피 버드
             const flappyCanvas = document.getElementById('flappyCanvas');
             if (flappyCanvas) {
                 const fCtx = flappyCanvas.getContext('2d');
@@ -752,7 +822,7 @@
                 document.getElementById('startFlappy')?.addEventListener('click', () => { if(isFlappyPlaying) return; cancelAnimationFrame(flappyAnimation); bird.y=150; bird.velocity=0; pipes=[]; flappyScore=0; frames=0; document.getElementById('flappyScore').innerText=`Score: 0`; isFlappyPlaying=true; flappyLoop(); });
             }
 
-            // 4. 스네이크 게임 (디자인 개선 버전)
+            // 4. 스네이크 게임
             const snakeCanvas = document.getElementById('snakeCanvas');
             if (snakeCanvas) {
                 const sCtx = snakeCanvas.getContext('2d');
