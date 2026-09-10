@@ -259,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 랜덤 게임 추천 모달창 -->
+    <!-- 랜덤 게임 추천 결과 모달창 -->
     <div id="randomModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 랜덤 게임 추천</h2>
@@ -560,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 1개 남았을 때 루프 버그 최종 수정 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 마지막 1개 주사위 턴 버그 완벽 해결 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -800,7 +800,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용 (원자적 트랜잭션 완벽 동기화)
+            // 주사위 배치 및 차감 룰 적용 (남은 주사위 1개일 때 루프 버그 방어선 강화)
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
