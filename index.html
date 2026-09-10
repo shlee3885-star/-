@@ -73,7 +73,7 @@
         }
         .casino-card:hover { background: #ffe0b2; transform: scale(1.02); }
 
-        /* 주사위 애니메이션 */
+        /* 주사위 애니메이션 및 내 차례 반짝이기 효과 */
         @keyframes diceShake {
             0% { transform: rotate(0deg) scale(1); }
             25% { transform: rotate(-15deg) scale(1.1); }
@@ -82,6 +82,16 @@
             100% { transform: rotate(0deg) scale(1); }
         }
         .rolling { animation: diceShake 0.4s ease infinite; color: #d32f2f !important; }
+
+        @keyframes blinkEffect {
+            0% { box-shadow: 0 0 0px #ff9800; border-color: #4CAF50; }
+            50% { box-shadow: 0 0 15px #ff9800; border-color: #ff9800; transform: scale(1.02); }
+            100% { box-shadow: 0 0 0px #ff9800; border-color: #4CAF50; }
+        }
+        .my-turn-blink {
+            animation: blinkEffect 1s infinite ease-in-out;
+        }
+
         #diceResultBox {
             background: white; border: 2px dashed #4CAF50; border-radius: 6px; padding: 6px;
             margin-top: 5px; font-size: 22px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 38px;
@@ -214,7 +224,8 @@
             <div id="gameTurnBox" style="font-size: 12px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 5px; border-radius: 4px;">턴 정보 로딩 중...</div>
 
             <div style="background: #f1f8e9; padding: 8px; border-radius: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 6px 14px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
+                <!-- 내 차례일 때 깜빡이는 클래스(.my-turn-blink)가 적용될 버튼 영역 -->
+                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 6px 14px; border: 2px solid #4CAF50; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px; transition: 0.2s;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
                 <div id="diceResultBox" style="font-size: 18px; padding: 4px; min-height: 32px;">READY</div>
             </div>
 
@@ -594,7 +605,7 @@
                 }
             });
 
-            // --- 🎲 라스베가스 방 시스템 및 주사위 1개 처리 안정화 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 마지막 1개 주사위 오류 정비 완료 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -775,6 +786,7 @@
                     diceBox.innerText = "READY";
                 }
 
+                // 모든 플레이어 주사위가 0개인지 철저히 검사 후 종료
                 const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -783,17 +795,24 @@
                     return;
                 }
 
+                // 현재 차례인 사람의 주사위가 0개이면 즉시 다음 사람으로 넘김
                 if (currentTurnPlayer && (playerDiceMap[currentTurnPlayer] || 0) === 0) {
                     checkAndAdvanceTurn(data);
                     return;
                 }
 
+                const rollBtn = document.getElementById('rollDiceBtn');
+
                 if (currentTurnPlayer === myNickname) {
                     document.getElementById('gameTurnBox').innerText = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
                     document.getElementById('gameTurnBox').style.backgroundColor = "#e8f5e9";
+                    // 🌟 내 차례 알림 UI: 주사위 굴리기 버튼 깜빡이기 활성화
+                    rollBtn.classList.add('my-turn-blink');
                 } else {
                     document.getElementById('gameTurnBox').innerText = `⏳ 현재 차례: [ ${currentTurnPlayer} ] 님의 턴입니다.`;
                     document.getElementById('gameTurnBox').style.backgroundColor = "#fff8e1";
+                    // 🌟 내 차례가 아니면 깜빡임 해제
+                    rollBtn.classList.remove('my-turn-blink');
                 }
 
                 const prizes = data.prizes || {};
@@ -845,7 +864,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성)
+            // 주사위 굴리기
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -875,7 +894,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용
+            // 주사위 배치 및 차감 룰 적용 (마지막 1개 남았을 때 인덱스 락 예외 처리 포함)
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
