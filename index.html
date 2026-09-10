@@ -126,7 +126,7 @@
         <button id="closeSidebar" class="close-sidebar">&times;</button>
         <h2>보드게임</h2>
         <ul>
-            <li><a href="#" id="sideVegas">🎲 미니 라스베가스</a></li>
+            <li><a href="#" id="sideVegas">🎲 라스베가스</a></li>
             <li><a href="#" id="sideSignup">📝 회원가입</a></li>
             <li><a href="#" id="sideRandom">🎲 랜덤 게임 추천</a></li>
             <li><a href="#" id="sideMatch">🤝 팀원 찾기</a></li>
@@ -154,7 +154,7 @@
     <div class="container">
         <h1>🎮 미니게임 파티</h1>
         <div class="button-group">
-            <button id="btnVegas" style="background-color: #ff9800;">🎲 미니 라스베가스</button>
+            <button id="btnVegas" style="background-color: #ff9800;">🎲 라스베가스</button>
             <button id="btnDino">🦖 Dino Run</button>
             <button id="btnBrick">🧱 벽돌 깨기</button>
             <button id="btnFlappy">🐦 플래피 버드</button>
@@ -166,7 +166,7 @@
     <!-- 🎲 라스베가스 방 로그인 모달창 -->
     <div id="vegasLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
-            <h2>🎲 미니 라스베가스</h2>
+            <h2>🎲 라스베가스</h2>
             <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 8명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="vegasRoomCode" placeholder="방 코드 입력" style="flex: 1;">
@@ -444,7 +444,7 @@
             { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -594,7 +594,7 @@
                 }
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 1개 처리 안정화 ---
+            // --- 🎲 라스베가스 방 시스템 및 주사위 1개 처리 안정화 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -875,7 +875,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용 (마지막 1~2개 잔여 주사위 소모 시 턴 락 완벽 방어)
+            // 주사위 배치 및 차감 룰 적용
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
