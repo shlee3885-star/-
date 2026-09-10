@@ -99,16 +99,8 @@
             background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
-        /* 카드 짝맞추기 게임 스타일 */
-        .memory-board {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            margin: 10px auto; width: 320px; height: 320px;
-        }
-        .memory-card {
-            background-color: #4CAF50; border-radius: 5px; display: flex;
-            justify-content: center; align-items: center; font-size: 35px; cursor: pointer;
-            color: transparent; transition: background-color 0.3s;
-        }
+        .memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px auto; width: 320px; height: 320px; }
+        .memory-card { background-color: #4CAF50; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; color: transparent; transition: background-color 0.3s; }
         .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
 
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
@@ -267,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 랜덤 게임 추천 결과 모달창 -->
+    <!-- 랜덤 게임 추천 모달창 -->
     <div id="randomModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 랜덤 게임 추천</h2>
@@ -568,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 배치 로직 (안정화 완료) ---
+            // --- 🎲 미니 라스베가스 멀티플레이 및 주사위 배치 시스템 (완전 수정) ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -606,28 +598,19 @@
                 await vegasRoomRef.child(`players/${myNickname}`).set(true);
 
                 closeModal('vegasLoginModal');
-                document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
-                openModal('vegasLobbyModal');
-                listenVegasLobby();
+                document.getElementById('vegasRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
+                openModal('vegasGameModal');
+                listenVegasRoom();
             });
 
-            document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
-                navigator.clipboard.writeText(currentRoomCode).then(() => {
-                    alert(`방 코드 [${currentRoomCode}] 복사 완료!`);
-                });
-            });
-
-            window.leaveVegasLobby = function() {
+            window.leaveVegasGame = function() {
                 if (vegasRoomRef && myNickname) {
                     vegasRoomRef.child(`players/${myNickname}`).remove();
                     vegasRoomRef.off();
                 }
-                closeModal('vegasLobbyModal');
-            };
-
-            window.leaveVegasGame = function() {
-                leaveVegasLobby();
                 closeModal('vegasGameModal');
+                currentRolledDice = [];
+                document.getElementById('diceResultBox').innerText = "READY";
             };
 
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
@@ -640,7 +623,6 @@
 
                 const shuffledPlayers = [...playerNames].sort(() => Math.random() - 0.5);
                 
-                // 1~6번 카지노 상금 랜덤 배정 (1만~10만 원)
                 let randomPrizes = {};
                 for (let i = 1; i <= 6; i++) {
                     randomPrizes[i] = (Math.floor(Math.random() * 10) + 1) * 10000;
@@ -659,7 +641,7 @@
                 });
             });
 
-            function listenVegasLobby() {
+            function listenVegasRoom() {
                 if (!vegasRoomRef) return;
                 vegasRoomRef.on('value', (snapshot) => {
                     const data = snapshot.val();
@@ -676,10 +658,12 @@
                     if (data.status === 'playing') {
                         if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
                             closeModal('vegasLobbyModal');
-                            document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
-                            openModal('vegasGameModal');
                         }
                         updateGameScreen(data);
+                    } else {
+                        if (document.getElementById('vegasGameModal').classList.contains('hidden') && document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
+                            openModal('vegasLobbyModal');
+                        }
                     }
                 });
             }
@@ -710,7 +694,6 @@
                 let boardContainer = document.getElementById('casinoBoard');
                 boardContainer.innerHTML = "";
 
-                // 동적으로 카지노 카드 생성 후 이벤트 부착 (배치 오류 해결)
                 for (let i = 1; i <= 6; i++) {
                     const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
                     const placedList = casinos[i] || [];
@@ -725,8 +708,8 @@
                         <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
                     `;
                     
-                    // 클릭 이벤트 직접 바인딩
-                    card.addEventListener('click', () => placeVegasDice(i));
+                    const casinoIndex = i;
+                    card.addEventListener('click', () => placeVegasDice(casinoIndex));
                     boardContainer.appendChild(card);
                 }
             }
@@ -783,7 +766,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용
+            // 주사위 배치 및 차감 룰 적용 (데이터 타입 정합성 보완)
             window.placeVegasDice = async function(casinoNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -797,7 +780,8 @@
                     return alert("먼저 주사위를 굴려주세요!");
                 }
 
-                const matchingDice = currentRolledDice.filter(d => d === casinoNum);
+                // 숫자형 타입으로 정확히 매칭 필터링
+                const matchingDice = currentRolledDice.filter(d => Number(d) === Number(casinoNum));
                 if (matchingDice.length === 0) {
                     return alert(`굴린 주사위 중에 ${casinoNum}번이 없습니다! 다른 카지노를 선택하세요.`);
                 }
