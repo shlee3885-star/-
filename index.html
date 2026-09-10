@@ -388,7 +388,7 @@
         </div>
     </div>
 
-    <!-- 스크립트 영역 (주사위 결과 표시 수정 완료) -->
+    <!-- 스크립트 영역 -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAOhNKJfLzDt4DaSct5GbFnVQ-twqvZGAw",
@@ -409,7 +409,7 @@
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
             { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
@@ -506,7 +506,7 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 애니메이션 수정 완료 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 결과 표시 수정 완료 ---
             let currentDice = [];
             let currentRoomCode = "";
             let myNickname = "";
@@ -589,10 +589,13 @@
                     let boardHtml = "";
                     for (let i = 1; i <= 6; i++) {
                         let placedList = casinos[i] || [];
+                        let myCount = placedList.filter(n => n === myNickname).length;
+                        
                         boardHtml += `
                             <div class="casino-card" onclick="placeVegasDice(${i})">
                                 <strong style="color: #e65100;">[ ${i}번 카지노 ]</strong><br>
-                                <span style="font-size: 11px; color: #555;">주사위: ${placedList.length}개</span>
+                                <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
+                                <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
                             </div>
                         `;
                     }
