@@ -560,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 멀티플레이 및 주사위 배치 시스템 (완전 수정) ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 대기실-게임 전환 고정 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -597,20 +597,30 @@
 
                 await vegasRoomRef.child(`players/${myNickname}`).set(true);
 
+                // 모달 전환: 로그인 닫고 대기실 열기
                 closeModal('vegasLoginModal');
-                document.getElementById('vegasRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
-                openModal('vegasGameModal');
+                document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
+                openModal('vegasLobbyModal');
                 listenVegasRoom();
             });
 
-            window.leaveVegasGame = function() {
+            document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(currentRoomCode).then(() => {
+                    alert(`방 코드 [${currentRoomCode}] 복사 완료!`);
+                });
+            });
+
+            window.leaveVegasLobby = function() {
                 if (vegasRoomRef && myNickname) {
                     vegasRoomRef.child(`players/${myNickname}`).remove();
                     vegasRoomRef.off();
                 }
+                closeModal('vegasLobbyModal');
+            };
+
+            window.leaveVegasGame = function() {
+                leaveVegasLobby();
                 closeModal('vegasGameModal');
-                currentRolledDice = [];
-                document.getElementById('diceResultBox').innerText = "READY";
             };
 
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
@@ -656,14 +666,10 @@
                     document.getElementById('lobbyPlayersList').innerHTML = listHtml;
 
                     if (data.status === 'playing') {
-                        if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
-                            closeModal('vegasLobbyModal');
-                        }
+                        closeModal('vegasLobbyModal');
+                        openModal('vegasGameModal');
+                        document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
                         updateGameScreen(data);
-                    } else {
-                        if (document.getElementById('vegasGameModal').classList.contains('hidden') && document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
-                            openModal('vegasLobbyModal');
-                        }
                     }
                 });
             }
@@ -766,7 +772,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용 (데이터 타입 정합성 보완)
+            // 주사위 배치 및 차감 룰 적용
             window.placeVegasDice = async function(casinoNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -780,7 +786,6 @@
                     return alert("먼저 주사위를 굴려주세요!");
                 }
 
-                // 숫자형 타입으로 정확히 매칭 필터링
                 const matchingDice = currentRolledDice.filter(d => Number(d) === Number(casinoNum));
                 if (matchingDice.length === 0) {
                     return alert(`굴린 주사위 중에 ${casinoNum}번이 없습니다! 다른 카지노를 선택하세요.`);
