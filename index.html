@@ -50,7 +50,7 @@
 
         /* 모달창 및 캔버스 스타일 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
-        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 460px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 95vh; overflow-y: auto; }
         .dino-content { width: 450px; text-align: center; }
 
         /* 실시간 채팅창 전용 스타일 */
@@ -64,14 +64,14 @@
         .chat-msg span { font-weight: bold; color: #4CAF50; margin-right: 5px; }
         .chat-input-area { display: flex; gap: 5px; margin-top: 5px; }
 
-        /* 라스베가스 카지노 판 스타일 */
+        /* 라스베가스 카지노 판 스타일 (상세 배치 명단 가시성 강화) */
         .casino-grid {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 5px 0;
         }
         .casino-card {
-            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s;
+            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; min-height: 110px;
         }
-        .casino-card:hover { background: #ffe0b2; transform: scale(1.03); }
+        .casino-card:hover { background: #ffe0b2; transform: scale(1.02); }
 
         /* 주사위 애니메이션 */
         @keyframes diceShake {
@@ -204,7 +204,7 @@
 
     <!-- 🎲 라스베가스 실전 게임 모달창 -->
     <div id="vegasGameModal" class="modal hidden">
-        <div class="modal-content" style="width: 440px; text-align: center;">
+        <div class="modal-content" style="width: 480px; text-align: center;">
             <h2 id="gameRoomTitle" style="margin: 0; font-size: 16px;">🎲 라스베가스 실전</h2>
             <div id="gameTurnBox" style="font-size: 13px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 6px; border-radius: 4px;">턴 정보 로딩 중...</div>
 
@@ -213,7 +213,7 @@
                 <div id="diceResultBox">READY</div>
             </div>
 
-            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (1~6번 상금 및 배치 현황 - 클릭하여 배치):</p>
+            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (상금 및 플레이어별 배치 현황 - 클릭하여 배치):</p>
             <div id="casinoBoard" class="casino-grid"></div>
 
             <div class="modal-buttons" style="margin-top: 8px;">
@@ -560,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 반복 락 버그 최종 수정 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 플레이어별 상세 배치 명단 기능 추가 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -702,7 +702,6 @@
                     diceBox.innerText = "READY";
                 }
 
-                // 모든 플레이어 주사위가 0개인지 철저히 검사 후 종료
                 const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -711,7 +710,6 @@
                     return;
                 }
 
-                // 현재 차례인 사람의 주사위가 0개이면 즉시 다음 사람으로 넘김
                 if (currentTurnPlayer && (playerDiceMap[currentTurnPlayer] || 0) === 0) {
                     checkAndAdvanceTurn(data);
                     return;
@@ -733,15 +731,25 @@
                 for (let i = 1; i <= 6; i++) {
                     const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
                     const placedList = casinos[i] || [];
-                    let myCount = placedList.filter(n => n === myNickname).length;
+                    
+                    // 📌 플레이어별 배치 개수 집계 (누가 어디에 몇 개 놓았는지 확인용)
+                    let countsByPlayer = {};
+                    placedList.forEach(name => {
+                        countsByPlayer[name] = (countsByPlayer[name] || 0) + 1;
+                    });
+
+                    let detailText = Object.keys(countsByPlayer).map(name => `${name}:${countsByPlayer[name]}개`).join(', ') || '없음';
 
                     const card = document.createElement('div');
                     card.className = 'casino-card';
                     card.innerHTML = `
-                        <strong style="color: #e65100; font-size: 14px;">[ ${i}번 카지노 ]</strong><br>
-                        <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">💰 ${prizeMoney}</span><br>
-                        <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
-                        <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
+                        <div>
+                            <strong style="color: #e65100; font-size: 13px;">[ ${i}번 카지노 ]</strong><br>
+                            <span style="color: #2e7d32; font-weight: bold; font-size: 12px;">💰 ${prizeMoney}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #444; background: #fff; padding: 4px; border-radius: 4px; margin-top: 4px; border: 1px solid #ffe0b2;">
+                            👥 <strong>배치 현황:</strong><br>${detailText}
+                        </div>
                     `;
                     
                     const casinoIndex = i;
@@ -766,7 +774,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (기존 rolledDice가 남아있어도 강제로 갱신되도록 개선)
+            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -779,8 +787,12 @@
 
                 const playerDiceMap = data.playerDice || {};
                 const myCount = playerDiceMap[myNickname] || 0;
+                const rolledDiceMap = data.rolledDice || {};
 
                 if (myCount <= 0) return alert("남은 주사위가 없습니다!");
+                if (rolledDiceMap[myNickname] && rolledDiceMap[myNickname].length > 0) {
+                    return alert("이미 주사위를 굴렸습니다! 카지노를 선택하여 배치하세요.");
+                }
 
                 const diceBox = document.getElementById('diceResultBox');
                 diceBox.classList.add('rolling');
@@ -1117,6 +1129,7 @@
                         setTimeout(() => { firstCard.classList.remove('flipped'); firstCard.innerText = ''; secondCard.classList.remove('flipped'); secondCard.innerText = ''; [firstCard, secondCard, lockBoard] = [null, null, false]; }, 800);
                     }
                 }
+                document.getElementById('startMemory');
                 document.getElementById('startMemory')?.addEventListener('click', () => {
                     memoryBoard.innerHTML = ''; memoryAttempts = 0; matchedPairs = 0; 
                     document.getElementById('memoryScore').innerText = `시도 횟수: 0`; 
