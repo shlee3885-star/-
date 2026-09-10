@@ -50,26 +50,26 @@
 
         /* 모달창 및 캔버스 스타일 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
-        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 460px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 95vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 480px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 95vh; overflow-y: auto; }
         .dino-content { width: 450px; text-align: center; }
 
         /* 실시간 채팅창 전용 스타일 */
         .chat-content { width: 420px; }
         .chat-messages {
-            width: 100%; height: 250px; border: 1px solid #ddd; border-radius: 5px;
+            width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 5px;
             background-color: #f9f9f9; padding: 10px; overflow-y: auto; text-align: left;
-            display: flex; flex-direction: column; gap: 8px;
+            display: flex; flex-direction: column; gap: 6px;
         }
-        .chat-msg { background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 14px; }
+        .chat-msg { background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 13px; }
         .chat-msg span { font-weight: bold; color: #4CAF50; margin-right: 5px; }
         .chat-input-area { display: flex; gap: 5px; margin-top: 5px; }
 
-        /* 라스베가스 카지노 판 스타일 (상세 배치 명단 가시성 강화) */
+        /* 라스베가스 카지노 판 스타일 */
         .casino-grid {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 5px 0;
         }
         .casino-card {
-            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; min-height: 110px;
+            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; min-height: 100px;
         }
         .casino-card:hover { background: #ffe0b2; transform: scale(1.02); }
 
@@ -182,42 +182,55 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 대기실 모달창 -->
+    <!-- 🎲 라스베가스 대기실 모달창 (방 전용 채팅 포함) -->
     <div id="vegasLobbyModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 id="lobbyTitle" style="margin: 0; font-size: 18px;">🎲 라스베가스 대기실</h2>
                 <button id="copyLobbyCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
             </div>
-            <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; text-align: left; margin: 10px 0;">
-                <strong>참여 중인 플레이어 (최대 8명):</strong>
-                <ul id="lobbyPlayersList" style="margin: 8px 0 0 20px; padding: 0; font-size: 14px; color: #333;"></ul>
+            <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; text-align: left; margin: 5px 0;">
+                <strong>참여 중인 플레이어:</strong>
+                <ul id="lobbyPlayersList" style="margin: 4px 0 0 20px; padding: 0; font-size: 13px; color: #333;"></ul>
             </div>
-            <div class="modal-buttons">
-                <button id="startGameBtn" style="background-color: #4CAF50; color: white; width: 100%; padding: 12px;">게임 시작하기 🚀</button>
+            <!-- 방 전용 채팅창 -->
+            <div style="text-align: left; font-size: 13px; font-weight: bold; color: #ff9800; margin-top: 5px;">💬 방 전용 실시간 채팅</div>
+            <div id="roomChatMessages" class="chat-messages" style="height: 140px;"></div>
+            <div class="chat-input-area">
+                <input type="text" id="roomChatInput" placeholder="방 친구들에게 메시지 전송..." style="flex: 1; padding: 8px; font-size: 13px;">
+                <button id="roomChatSendBtn" style="background-color: #2196F3; color: white; border: none; border-radius: 5px; padding: 0 12px; cursor: pointer; font-weight: bold;">전송</button>
             </div>
-            <div class="modal-buttons" style="margin-top: 5px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasLobby()">나가기</button>
+            <div class="modal-buttons" style="margin-top: 8px;">
+                <button id="startGameBtn" style="background-color: #4CAF50; color: white; width: 48%; padding: 10px;">게임 시작 🚀</button>
+                <button class="close-btn" style="width: 48%; background-color: #757575;" onclick="leaveVegasLobby()">나가기</button>
             </div>
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 실전 게임 모달창 -->
+    <!-- 🎲 라스베가스 실전 게임 모달창 (방 전용 채팅 포함) -->
     <div id="vegasGameModal" class="modal hidden">
         <div class="modal-content" style="width: 480px; text-align: center;">
-            <h2 id="gameRoomTitle" style="margin: 0; font-size: 16px;">🎲 라스베가스 실전</h2>
-            <div id="gameTurnBox" style="font-size: 13px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 6px; border-radius: 4px;">턴 정보 로딩 중...</div>
+            <h2 id="gameRoomTitle" style="margin: 0; font-size: 15px;">🎲 라스베가스 실전</h2>
+            <div id="gameTurnBox" style="font-size: 12px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 5px; border-radius: 4px;">턴 정보 로딩 중...</div>
 
-            <div style="background: #f1f8e9; padding: 10px; border-radius: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
-                <div id="diceResultBox">READY</div>
+            <div style="background: #f1f8e9; padding: 8px; border-radius: 8px;">
+                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 6px 14px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
+                <div id="diceResultBox" style="font-size: 18px; padding: 4px; min-height: 32px;">READY</div>
             </div>
 
-            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (상금 및 플레이어별 배치 현황 - 클릭하여 배치):</p>
+            <p style="font-size: 11px; font-weight: bold; margin: 3px 0;">카지노 판 (상금 및 배치 현황 - 클릭하여 배치):</p>
             <div id="casinoBoard" class="casino-grid"></div>
 
-            <div class="modal-buttons" style="margin-top: 8px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasGame()">게임 포기 및 나가기</button>
+            <!-- 게임 중 방 전용 채팅창 -->
+            <div style="text-align: left; font-size: 12px; font-weight: bold; color: #ff9800; margin-top: 4px;">💬 방 전용 실시간 채팅</div>
+            <div id="gameChatMessages" class="chat-messages" style="height: 100px;"></div>
+            <div class="chat-input-area">
+                <input type="text" id="gameChatInput" placeholder="메시지 입력..." style="flex: 1; padding: 6px; font-size: 12px;">
+                <button id="gameChatSendBtn" style="background-color: #2196F3; color: white; border: none; border-radius: 4px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">전송</button>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 5px;">
+                <button class="close-btn" style="width: 100%; background-color: #757575; padding: 8px; font-size: 12px;" onclick="leaveVegasGame()">게임 포기 및 나가기</button>
             </div>
         </div>
     </div>
@@ -307,11 +320,11 @@
         </div>
     </div>
 
-    <!-- 💬 실시간 오픈 채팅 모달창 -->
+    <!-- 💬 실시간 오픈 채팅 모달창 (기존 원복 완료) -->
     <div id="chatModal" class="modal hidden">
         <div class="modal-content chat-content">
             <h2>💬 실시간 오픈 채팅</h2>
-            <div id="chatMessages" class="chat-messages"></div>
+            <div id="chatMessages" class="chat-messages" style="height: 250px;"></div>
             <div class="chat-input-area">
                 <input type="text" id="chatNameInput" placeholder="이름" style="width: 30%;">
                 <input type="text" id="chatMsgInput" placeholder="메시지를 입력하세요..." style="width: 55%;">
@@ -428,7 +441,7 @@
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
             { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
@@ -560,10 +573,32 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 플레이어별 상세 배치 명단 기능 추가 ---
+            // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
+            const chatMessages = document.getElementById('chatMessages');
+            const chatMsgInput = document.getElementById('chatMsgInput');
+            const chatNameInput = document.getElementById('chatNameInput');
+            document.getElementById('sendChatBtn')?.addEventListener('click', () => {
+                const name = chatNameInput.value.trim() || "익명"; const text = chatMsgInput.value.trim();
+                if (!text) return;
+                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
+                chatMsgInput.value = '';
+            });
+            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
+                chatMessages.innerHTML = '';
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(msg => {
+                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
+
+            // --- 🎲 미니 라스베가스 방 시스템 및 방 전용 실시간 채팅 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
+            let roomChatRef = null;
 
             document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -593,6 +628,7 @@
                 currentRoomCode = roomCode;
                 myNickname = name;
                 vegasRoomRef = roomRef;
+                roomChatRef = rtdb.ref(`vegas_rooms/${roomCode}/chat`);
 
                 await vegasRoomRef.child(`players/${myNickname}`).set(true);
 
@@ -600,6 +636,7 @@
                 document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
                 openModal('vegasLobbyModal');
                 listenVegasRoom();
+                listenRoomChat();
             });
 
             document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
@@ -608,10 +645,47 @@
                 });
             });
 
+            // 방 전용 채팅 전송 함수
+            function sendRoomChatMessage(inputId) {
+                const inputElem = document.getElementById(inputId);
+                const text = inputElem.value.trim();
+                if (!text || !roomChatRef) return;
+                roomChatRef.push({ name: myNickname, text: text, timestamp: Date.now() });
+                inputElem.value = '';
+            }
+
+            document.getElementById('roomChatSendBtn')?.addEventListener('click', () => sendRoomChatMessage('roomChatInput'));
+            document.getElementById('roomChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendRoomChatMessage('roomChatInput'); });
+
+            document.getElementById('gameChatSendBtn')?.addEventListener('click', () => sendRoomChatMessage('gameChatInput'));
+            document.getElementById('gameChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendRoomChatMessage('gameChatInput'); });
+
+            function listenRoomChat() {
+                if (!roomChatRef) return;
+                roomChatRef.limitToLast(30).on('value', (snapshot) => {
+                    const lobbyBox = document.getElementById('roomChatMessages');
+                    const gameBox = document.getElementById('gameChatMessages');
+                    if (lobbyBox) lobbyBox.innerHTML = '';
+                    if (gameBox) gameBox.innerHTML = '';
+
+                    const data = snapshot.val();
+                    if (data) {
+                        Object.values(data).forEach(msg => {
+                            const chatHtml = `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                            if (lobbyBox) lobbyBox.innerHTML += chatHtml;
+                            if (gameBox) gameBox.innerHTML += chatHtml;
+                        });
+                        if (lobbyBox) lobbyBox.scrollTop = lobbyBox.scrollHeight;
+                        if (gameBox) gameBox.scrollTop = gameBox.scrollHeight;
+                    }
+                });
+            }
+
             window.leaveVegasLobby = function() {
                 if (vegasRoomRef && myNickname) {
                     vegasRoomRef.child(`players/${myNickname}`).remove();
                     vegasRoomRef.off();
+                    if (roomChatRef) roomChatRef.off();
                 }
                 closeModal('vegasLobbyModal');
             };
@@ -732,12 +806,10 @@
                     const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
                     const placedList = casinos[i] || [];
                     
-                    // 📌 플레이어별 배치 개수 집계 (누가 어디에 몇 개 놓았는지 확인용)
                     let countsByPlayer = {};
                     placedList.forEach(name => {
                         countsByPlayer[name] = (countsByPlayer[name] || 0) + 1;
                     });
-
                     let detailText = Object.keys(countsByPlayer).map(name => `${name}:${countsByPlayer[name]}개`).join(', ') || '없음';
 
                     const card = document.createElement('div');
@@ -745,10 +817,10 @@
                     card.innerHTML = `
                         <div>
                             <strong style="color: #e65100; font-size: 13px;">[ ${i}번 카지노 ]</strong><br>
-                            <span style="color: #2e7d32; font-weight: bold; font-size: 12px;">💰 ${prizeMoney}</span>
+                            <span style="color: #2e7d32; font-weight: bold; font-size: 11px;">💰 ${prizeMoney}</span>
                         </div>
-                        <div style="font-size: 11px; color: #444; background: #fff; padding: 4px; border-radius: 4px; margin-top: 4px; border: 1px solid #ffe0b2;">
-                            👥 <strong>배치 현황:</strong><br>${detailText}
+                        <div style="font-size: 11px; color: #444; background: #fff; padding: 3px; border-radius: 4px; margin-top: 3px; border: 1px solid #ffe0b2;">
+                            👥 <strong>현황:</strong><br>${detailText}
                         </div>
                     `;
                     
@@ -774,7 +846,6 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -787,12 +858,8 @@
 
                 const playerDiceMap = data.playerDice || {};
                 const myCount = playerDiceMap[myNickname] || 0;
-                const rolledDiceMap = data.rolledDice || {};
 
                 if (myCount <= 0) return alert("남은 주사위가 없습니다!");
-                if (rolledDiceMap[myNickname] && rolledDiceMap[myNickname].length > 0) {
-                    return alert("이미 주사위를 굴렸습니다! 카지노를 선택하여 배치하세요.");
-                }
 
                 const diceBox = document.getElementById('diceResultBox');
                 diceBox.classList.add('rolling');
@@ -808,7 +875,6 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
@@ -1129,7 +1195,6 @@
                         setTimeout(() => { firstCard.classList.remove('flipped'); firstCard.innerText = ''; secondCard.classList.remove('flipped'); secondCard.innerText = ''; [firstCard, secondCard, lockBoard] = [null, null, false]; }, 800);
                     }
                 }
-                document.getElementById('startMemory');
                 document.getElementById('startMemory')?.addEventListener('click', () => {
                     memoryBoard.innerHTML = ''; memoryAttempts = 0; matchedPairs = 0; 
                     document.getElementById('memoryScore').innerText = `시도 횟수: 0`; 
