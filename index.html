@@ -107,6 +107,15 @@
     </style>
 </head>
 <body>
+    <!-- 🎵 레트로 배경음악 제어 영역 -->
+    <div style="position: fixed; top: 20px; left: 20px; z-index: 999; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 14px; font-weight: bold; color: #333;">🎵 BGM</span>
+        <audio id="bgm" loop>
+            <source src="https://opengameart.org/sites/default/files/Chiptune_Loop.ogg" type="audio/ogg">
+        </audio>
+        <button id="bgmToggleBtn" style="padding: 4px 10px; font-size: 12px; font-weight: bold; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">재생</button>
+    </div>
+
     <!-- ☰ 사이드바 열기 버튼 -->
     <button id="sidebarToggle" class="sidebar-toggle">☰</button>
 
@@ -330,7 +339,7 @@
         </div>
     </div>
 
-    <!-- 스크립트 영역 (Firebase 클라우드 연동) -->
+    <!-- 스크립트 영역 (Firebase 및 게임/BGM 로직 통합) -->
     <script>
         // 🔥 싱가포르 실시간 데이터베이스 URL이 적용된 최종 설정
         const firebaseConfig = {
@@ -461,6 +470,29 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
+            // --- 🎵 레트로 BGM 제어 로직 ---
+            const bgm = document.getElementById('bgm');
+            const bgmToggleBtn = document.getElementById('bgmToggleBtn');
+            let isBgmPlaying = false;
+
+            bgmToggleBtn?.addEventListener('click', () => {
+                if (isBgmPlaying) {
+                    bgm.pause();
+                    bgmToggleBtn.innerText = "재생";
+                    bgmToggleBtn.style.backgroundColor = "#4CAF50";
+                    isBgmPlaying = false;
+                } else {
+                    bgm.play().then(() => {
+                        bgmToggleBtn.innerText = "음소거";
+                        bgmToggleBtn.style.backgroundColor = "#f44336";
+                        isBgmPlaying = true;
+                    }).catch(e => {
+                        console.log("재생 실패:", e);
+                        alert("오디오 재생을 지원하지 않거나 차단되었습니다.");
+                    });
+                }
+            });
+
             // --- 회원가입 제출 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
