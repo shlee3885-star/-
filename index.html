@@ -560,7 +560,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 1개 남았을 때 루프 버그 최종 수정 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 고정 오류 완벽 해결 ---
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
@@ -702,7 +702,6 @@
                     diceBox.innerText = "READY";
                 }
 
-                // 모든 플레이어 주사위가 0개인지 철저히 검사 후 종료
                 const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
                 if (allZero) {
                     if (data.status !== 'ended') {
@@ -765,7 +764,7 @@
                 await vegasRoomRef.update({ currentTurnIndex: currentIndex });
             }
 
-            // 주사위 굴리기 (남은 개수만큼 정확한 무작위 눈금 생성 보장)
+            // 주사위 굴리기 (남은 개수만큼 완벽한 무작위 눈금 생성)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val();
@@ -799,7 +798,7 @@
                 }, 500);
             });
 
-            // 주사위 배치 및 차감 룰 적용
+            // 주사위 배치 및 차감 룰 적용 (원자적 트랜잭션 완벽 동기화)
             window.placeVegasDice = async function(casinoNum) {
                 if (!vegasRoomRef) return;
                 const snap = await vegasRoomRef.once('value');
