@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 미니게임 파티 & 라스베가스 멀티</title>
+    <title>🎮 미니게임 파티</title>
     <!-- Firebase SDK (v9 호환 버전) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -26,7 +26,7 @@
         h1 { color: #333; margin-bottom: 30px; }
 
         .button-group button {
-            display: block; width: 250px; margin: 12px auto; padding: 14px; font-size: 16px;
+            display: block; width: 250px; margin: 15px auto; padding: 15px; font-size: 16px;
             font-weight: bold; color: white; background-color: #4CAF50; border: none;
             border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
@@ -48,9 +48,9 @@
         .sidebar ul li a { text-decoration: none; color: #333; font-weight: bold; display: block; padding: 6px; border-radius: 5px; font-size: 14px; }
         .sidebar ul li a:hover { background-color: #f1f1f1; color: #2196F3; padding-left: 10px; }
 
-        /* 모달창 스타일 */
+        /* 모달창 및 캔버스 스타일 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1100; }
-        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 320px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; }
         .dino-content { width: 450px; text-align: center; }
 
         /* 실시간 채팅창 전용 스타일 */
@@ -64,30 +64,6 @@
         .chat-msg span { font-weight: bold; color: #4CAF50; margin-right: 5px; }
         .chat-input-area { display: flex; gap: 5px; margin-top: 5px; }
 
-        /* 라스베가스 카지노 판 스타일 */
-        .casino-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 5px 0;
-        }
-        .casino-card {
-            background: #fff3e0; border: 2px solid #ffa726; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s;
-        }
-        .casino-card:hover { background: #ffe0b2; transform: scale(1.03); }
-
-        /* 주사위 애니메이션 */
-        @keyframes diceShake {
-            0% { transform: rotate(0deg) scale(1); }
-            25% { transform: rotate(-15deg) scale(1.1); }
-            50% { transform: rotate(15deg) scale(1.1); }
-            75% { transform: rotate(-10deg) scale(1.05); }
-            100% { transform: rotate(0deg) scale(1); }
-        }
-        .rolling { animation: diceShake 0.4s ease infinite; color: #d32f2f !important; }
-        #diceResultBox {
-            background: white; border: 2px dashed #4CAF50; border-radius: 6px; padding: 6px;
-            margin-top: 5px; font-size: 22px; font-weight: bold; letter-spacing: 6px; color: #333; min-height: 38px;
-            display: flex; justify-content: center; align-items: center;
-        }
-
         /* 🏆 랭킹 리스트 스타일 */
         .ranking-item {
             display: flex; justify-content: space-between; align-items: center;
@@ -99,8 +75,16 @@
             background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
-        .memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px auto; width: 320px; height: 320px; }
-        .memory-card { background-color: #4CAF50; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; color: transparent; transition: background-color 0.3s; }
+        /* 카드 짝맞추기 게임 스타일 */
+        .memory-board {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            margin: 10px auto; width: 320px; height: 320px;
+        }
+        .memory-card {
+            background-color: #4CAF50; border-radius: 5px; display: flex;
+            justify-content: center; align-items: center; font-size: 35px; cursor: pointer;
+            color: transparent; transition: background-color 0.3s;
+        }
         .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
 
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
@@ -112,7 +96,7 @@
     </style>
 </head>
 <body>
-    <!-- 🎵 신나는 8비트 레트로 BGM 영역 -->
+    <!-- 🎵 8비트 레트로 BGM 신디사이저 영역 -->
     <div style="position: fixed; top: 20px; left: 20px; z-index: 999; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;">
         <span id="speakerIcon" style="font-size: 18px; cursor: pointer;" title="클릭하여 재생/음소거">🔇</span>
         <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.3" style="width: 80px; cursor: pointer;" title="음량 조절">
@@ -126,7 +110,6 @@
         <button id="closeSidebar" class="close-sidebar">&times;</button>
         <h2>보드게임</h2>
         <ul>
-            <li><a href="#" id="sideVegas">🎲 미니 라스베가스</a></li>
             <li><a href="#" id="sideSignup">📝 회원가입</a></li>
             <li><a href="#" id="sideRandom">🎲 랜덤 게임 추천</a></li>
             <li><a href="#" id="sideMatch">🤝 팀원 찾기</a></li>
@@ -150,86 +133,15 @@
         </ul>
     </div>
 
-    <!-- 메인 컨테이너 -->
+    <!-- 메인 컨테이너 (홈 화면) -->
     <div class="container">
         <h1>🎮 미니게임 파티</h1>
         <div class="button-group">
-            <button id="btnVegas" style="background-color: #ff9800;">🎲 미니 라스베가스</button>
             <button id="btnDino">🦖 Dino Run</button>
             <button id="btnBrick">🧱 벽돌 깨기</button>
             <button id="btnFlappy">🐦 플래피 버드</button>
             <button id="btnSnake">🐍 스네이크</button>
             <button id="btnMemory">🃏 카드 짝맞추기</button>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 로그인/방 생성 모달창 -->
-    <div id="vegasLoginModal" class="modal hidden">
-        <div class="modal-content" style="text-align: center;">
-            <h2>🎲 미니 라스베가스</h2>
-            <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 8명)</p>
-            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                <input type="text" id="vegasRoomCode" placeholder="방 코드 입력" style="flex: 1;">
-                <button id="randomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
-            </div>
-            <input type="text" id="vegasNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
-            <div class="modal-buttons">
-                <button id="joinVegasRoomBtn" style="background-color: #ff9800; color: white; width: 100%;">대기실 입장하기</button>
-            </div>
-            <div class="modal-buttons" style="margin-top: 5px;">
-                <button class="close-btn" style="width: 100%;" onclick="closeModal('vegasLoginModal')">닫기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 대기실 모달창 -->
-    <div id="vegasLobbyModal" class="modal hidden">
-        <div class="modal-content" style="text-align: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="lobbyTitle" style="margin: 0; font-size: 18px;">🎲 라스베가스 대기실</h2>
-                <button id="copyLobbyCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
-            </div>
-            <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; text-align: left; margin: 10px 0;">
-                <strong>참여 중인 플레이어 (최대 8명):</strong>
-                <ul id="lobbyPlayersList" style="margin: 8px 0 0 20px; padding: 0; font-size: 14px; color: #333;"></ul>
-            </div>
-            <div class="modal-buttons">
-                <button id="startGameBtn" style="background-color: #4CAF50; color: white; width: 100%; padding: 12px;">게임 시작하기 🚀</button>
-            </div>
-            <div class="modal-buttons" style="margin-top: 5px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasLobby()">나가기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 실게임 판 모달창 -->
-    <div id="vegasGameModal" class="modal hidden">
-        <div class="modal-content" style="width: 440px; text-align: center;">
-            <h2 id="gameRoomTitle" style="margin: 0; font-size: 16px;">🎲 라스베가스 실전</h2>
-            <div id="gameTurnBox" style="font-size: 13px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 6px; border-radius: 4px;">턴 정보 로딩 중...</div>
-
-            <div style="background: #f1f8e9; padding: 10px; border-radius: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
-                <div id="diceResultBox">READY</div>
-            </div>
-
-            <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">카지노 판 (1~6번 상금 및 배치 현황):</p>
-            <div id="casinoBoard" class="casino-grid"></div>
-
-            <div class="modal-buttons" style="margin-top: 8px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveVegasGame()">게임 포기 및 나가기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🎲 라스베가스 최종 결과 및 순위표 모달창 -->
-    <div id="vegasResultModal" class="modal hidden">
-        <div class="modal-content" style="text-align: center; width: 400px;">
-            <h2>🏆 최종 게임 결과 & 순위표</h2>
-            <div id="finalScoreBoard" style="margin: 15px 0; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 14px; max-height: 250px; overflow-y: auto;"></div>
-            <div class="modal-buttons">
-                <button class="close-btn" style="width: 100%; background-color: #4CAF50;" onclick="closeModal('vegasResultModal')">확인</button>
-            </div>
         </div>
     </div>
 
@@ -360,6 +272,7 @@
             </div>
         </div>
     </div>
+
     <div id="brickModal" class="modal hidden">
         <div class="modal-content dino-content">
             <h2>🧱 벽돌 깨기</h2>
@@ -372,6 +285,7 @@
             </div>
         </div>
     </div>
+
     <div id="flappyModal" class="modal hidden">
         <div class="modal-content dino-content">
             <h2>🐦 플래피 버드</h2>
@@ -384,6 +298,7 @@
             </div>
         </div>
     </div>
+
     <div id="snakeModal" class="modal hidden">
         <div class="modal-content dino-content">
             <h2>🐍 스네이크</h2>
@@ -396,6 +311,7 @@
             </div>
         </div>
     </div>
+
     <div id="memoryModal" class="modal hidden">
         <div class="modal-content dino-content">
             <h2>🃏 카드 짝맞추기</h2>
@@ -421,14 +337,16 @@
             databaseURL: "https://chat-bad67-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        try { if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); } } catch (e) { }
+        try {
+            if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        } catch (e) { console.error("Firebase init error", e); }
 
         const db = firebase.firestore();      
         const rtdb = firebase.database();     
 
         const games = [
             { title: "달무티", link: "https://namu.wiki/w/%EB%8B%AC%EB%AC%B4%ED%8B%B0" },
-            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
+            { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EB%A6%AC%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
             { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
@@ -438,7 +356,7 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 온라인 Firestore 랭킹 조회 함수 복구
+        // 🏆 온라인 Firestore 랭킹 조회 함수
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
@@ -465,9 +383,10 @@
             }
         }
 
+        // 🏆 게임 종료 시 랭킹 등록
         function saveAndShowRanking(modalId, gameKey, gameName, score) {
             closeModal(modalId);
-            document.getElementById('scoreInputDesc').innerHTML = `게임 종료! (기록: <strong>${score}점</strong>)<br>닉네임을 입력하세요.`;
+            document.getElementById('scoreInputDesc').innerHTML = `게임 종료! (기록: <strong>${score}점</strong>)<br>랭킹 등록을 원하시면 닉네임을 입력해주세요.`;
             document.getElementById('rankingNickname').value = '';
             openModal('scoreInputModal');
 
@@ -479,22 +398,29 @@
                 let playerName = document.getElementById('rankingNickname').value.trim() || "익명";
                 closeModal('scoreInputModal');
                 try {
-                    await db.collection("rankings").add({ game: gameKey, name: playerName, score: Number(score), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                    await db.collection("rankings").add({
+                        game: gameKey,
+                        name: playerName,
+                        score: Number(score),
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                     await fetchAndShowRanking(gameKey, gameName);
-                } catch (error) { alert("점수 저장 실패"); }
+                } catch (error) {
+                    alert("점수를 저장하는 중 오류가 발생했습니다.");
+                }
             });
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 🎵 8비트 레트로 BGM ---
+            // --- 🎵 8비트 레트로 BGM 신디사이저 ---
             let audioCtx = null, masterGain = null, isBgmPlaying = false, bgmInterval = null;
             const speakerIcon = document.getElementById('speakerIcon');
             const volumeSlider = document.getElementById('volumeSlider');
             const upbeatMelody = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 659.25, 587.33, 698.46, 880.00, 1174.66, 880.00, 698.46, 587.33, 698.46];
             let step = 0;
 
-            speakerIcon?.addEventListener('click', () => {
+            function initAudio() {
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     masterGain = audioCtx.createGain();
@@ -502,9 +428,13 @@
                     masterGain.connect(audioCtx.destination);
                 }
                 if (audioCtx.state === 'suspended') audioCtx.resume();
+            }
 
-                if (isBgmPlaying) { isBgmPlaying = false; clearInterval(bgmInterval); speakerIcon.innerText = "🔇"; }
-                else {
+            speakerIcon?.addEventListener('click', () => {
+                initAudio();
+                if (isBgmPlaying) {
+                    isBgmPlaying = false; clearInterval(bgmInterval); speakerIcon.innerText = "🔇";
+                } else {
                     isBgmPlaying = true; speakerIcon.innerText = "🔊";
                     bgmInterval = setInterval(() => {
                         if (!isBgmPlaying || !audioCtx) return;
@@ -522,13 +452,67 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 홈 화면 미니게임 버튼 연결 복구 ---
+            // --- 회원가입 및 팀원 매칭 ---
+            document.getElementById('submitSignup')?.addEventListener('click', async () => {
+                const name = document.getElementById('regName').value;
+                const age = document.getElementById('regAge').value;
+                const gender = document.getElementById('regGender').value;
+                const game = document.getElementById('regGame').value;
+                if (!name || !age || !gender || !game) return alert("모든 정보를 입력해주세요!");
+                try {
+                    await db.collection("users").add({ name, age, gender, favoriteGame: game, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    alert(`${name}님 회원가입 완료!`); closeModal('signupModal');
+                } catch (e) { alert("오류 발생"); }
+            });
+
+            document.getElementById('submitMatch')?.addEventListener('click', async () => {
+                const prefAge = document.getElementById('matchAge').value;
+                const prefGender = document.getElementById('matchGender').value;
+                const prefGame = document.getElementById('matchGame').value;
+                if (!prefAge || !prefGender || !prefGame) return alert("조건을 선택해주세요!");
+                try {
+                    const snap = await db.collection("users").get(); let matched = [];
+                    snap.forEach(doc => {
+                        let u = doc.data(); let cnt = 0;
+                        if (u.age === prefAge) cnt++;
+                        if (u.gender === prefGender || prefGender === '상관없음') cnt++;
+                        if (u.favoriteGame === prefGame) cnt++;
+                        if (cnt >= 2) matched.push(u.name);
+                    });
+                    document.getElementById('matchResultText').innerHTML = matched.length > 0 ? `🎉 매칭 성공!<br><span style="color:#4CAF50; font-size:18px;">${matched.join(', ')}</span>` : `😢 조건에 맞는 팀원이 없습니다.`;
+                    closeModal('matchModal'); openModal('matchResultModal');
+                } catch (e) { alert("매칭 오류"); }
+            });
+
+            // --- 실시간 오픈 채팅 ---
+            const chatMessages = document.getElementById('chatMessages');
+            const chatMsgInput = document.getElementById('chatMsgInput');
+            const chatNameInput = document.getElementById('chatNameInput');
+            document.getElementById('sendChatBtn')?.addEventListener('click', () => {
+                const name = chatNameInput.value.trim() || "익명"; const text = chatMsgInput.value.trim();
+                if (!text) return;
+                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
+                chatMsgInput.value = '';
+            });
+            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
+                chatMessages.innerHTML = '';
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(msg => {
+                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
+
+            // --- 홈 화면 미니게임 버튼 바인딩 ---
             document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
             document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
             document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
             document.getElementById('btnSnake')?.addEventListener('click', () => openModal('snakeModal'));
             document.getElementById('btnMemory')?.addEventListener('click', () => openModal('memoryModal'));
 
+            // --- 사이드바 제어 ---
             const sidebar = document.getElementById('sidebar');
             document.getElementById('sidebarToggle')?.addEventListener('click', () => sidebar?.classList.add('open'));
             document.getElementById('closeSidebar')?.addEventListener('click', () => sidebar?.classList.remove('open'));
@@ -554,385 +538,190 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 미니 라스베가스 멀티플레이 및 배치/턴제 로직 ---
-            let currentRoomCode = "";
-            let myNickname = "";
-            let vegasRoomRef = null;
-            let currentRolledDice = []; // 굴린 주사위 배열
+            // =================== 미니게임 5종 완벽 복구 로직 ===================
 
-            document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
-            document.getElementById('sideVegas')?.addEventListener('click', (e) => { e.preventDefault(); openModal('vegasLoginModal'); sidebar?.classList.remove('open'); });
-
-            document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
-                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                let randomCode = "";
-                for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-                document.getElementById('vegasRoomCode').value = randomCode;
-            });
-
-            document.getElementById('joinVegasRoomBtn')?.addEventListener('click', async () => {
-                const roomCode = document.getElementById('vegasRoomCode').value.trim();
-                const name = document.getElementById('vegasNickname').value.trim();
-                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
-
-                const roomRef = rtdb.ref(`vegas_rooms/${roomCode}`);
-                const snap = await roomRef.once('value');
-                const roomData = snap.val();
-
-                if (roomData && roomData.status === 'playing') {
-                    return alert("이미 게임이 진행 중인 방입니다!");
-                }
-
-                const players = roomData ? (roomData.players || {}) : {};
-                if (Object.keys(players).length >= 8 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 8명)!");
-                }
-
-                currentRoomCode = roomCode;
-                myNickname = name;
-                vegasRoomRef = roomRef;
-
-                await vegasRoomRef.child(`players/${myNickname}`).set(true);
-
-                closeModal('vegasLoginModal');
-                document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
-                openModal('vegasLobbyModal');
-                listenVegasRoom();
-            });
-
-            document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
-                navigator.clipboard.writeText(currentRoomCode).then(() => {
-                    alert(`방 코드 [${currentRoomCode}] 복사 완료!`);
-                });
-            });
-
-            window.leaveVegasLobby = function() {
-                if (vegasRoomRef && myNickname) {
-                    vegasRoomRef.child(`players/${myNickname}`).remove();
-                    vegasRoomRef.off();
-                }
-                closeModal('vegasLobbyModal');
-            };
-
-            window.leaveVegasGame = function() {
-                leaveVegasLobby();
-                closeModal('vegasGameModal');
-            };
-
-            document.getElementById('startGameBtn')?.addEventListener('click', async () => {
-                const snap = await vegasRoomRef.once('value');
-                const data = snap.val();
-                const playersObj = data.players || {};
-                const playerNames = Object.keys(playersObj);
-
-                if (playerNames.length === 0) return alert("참여 인원이 없습니다!");
-
-                const shuffledPlayers = [...playerNames].sort(() => Math.random() - 0.5);
-                
-                let randomPrizes = {};
-                for (let i = 1; i <= 6; i++) {
-                    randomPrizes[i] = (Math.floor(Math.random() * 10) + 1) * 10000;
-                }
-
-                let initialDice = {};
-                playerNames.forEach(p => initialDice[p] = 4);
-
-                await vegasRoomRef.update({
-                    status: 'playing',
-                    turnOrder: shuffledPlayers,
-                    currentTurnIndex: 0,
-                    prizes: randomPrizes,
-                    casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]},
-                    playerDice: initialDice
-                });
-            });
-
-            function listenVegasRoom() {
-                if (!vegasRoomRef) return;
-                vegasRoomRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (!data) return;
-
-                    const playersObj = data.players || {};
-                    const playerNames = Object.keys(playersObj);
-                    let listHtml = "";
-                    playerNames.forEach(p => {
-                        listHtml += `<li>${p} ${p === myNickname ? '(나)' : ''}</li>`;
-                    });
-                    document.getElementById('lobbyPlayersList').innerHTML = listHtml;
-
-                    if (data.status === 'playing') {
-                        if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
-                            closeModal('vegasLobbyModal');
-                            document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
-                            openModal('vegasGameModal');
-                        }
-                        updateGameScreen(data);
-                    }
-                });
-            }
-
-            function updateGameScreen(data) {
-                const turnOrder = data.turnOrder || [];
-                const currentIndex = data.currentTurnIndex || 0;
-                const currentTurnPlayer = turnOrder[currentIndex];
-                const playerDiceMap = data.playerDice || {};
-                const myRemainingDice = playerDiceMap[myNickname] !== undefined ? playerDiceMap[myNickname] : 4;
-
-                document.getElementById('myDiceCount').innerText = myRemainingDice;
-
-                if (currentTurnPlayer && playerDiceMap[currentTurnPlayer] === 0) {
-                    checkAndAdvanceTurn(data);
-                }
-
-                if (currentTurnPlayer === myNickname) {
-                    document.getElementById('gameTurnBox').innerText = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
-                    document.getElementById('gameTurnBox').style.backgroundColor = "#e8f5e9";
-                } else {
-                    document.getElementById('gameTurnBox').innerText = `⏳ 현재 차례: [ ${currentTurnPlayer} ] 님의 턴입니다.`;
-                    document.getElementById('gameTurnBox').style.backgroundColor = "#fff8e1";
-                }
-
-                const prizes = data.prizes || {};
-                const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                let boardHtml = "";
-
-                for (let i = 1; i <= 6; i++) {
-                    const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
-                    const placedList = casinos[i] || [];
-                    let myCount = placedList.filter(n => n === myNickname).length;
-
-                    boardHtml += `
-                        <div class="casino-card" onclick="placeVegasDice(${i})">
-                            <strong style="color: #e65100; font-size: 14px;">[ ${i}번 카지노 ]</strong><br>
-                            <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">💰 ${prizeMoney}</span><br>
-                            <span style="font-size: 11px; color: #555;">총 주사위: ${placedList.length}개</span><br>
-                            <span style="font-size: 10px; color: #2196F3; font-weight: bold;">내 주사위: ${myCount}개</span>
-                        </div>
-                    `;
-                }
-                document.getElementById('casinoBoard').innerHTML = boardHtml;
-            }
-
-            async function checkAndAdvanceTurn(data) {
-                const turnOrder = data.turnOrder || [];
-                const playerDiceMap = data.playerDice || {};
-                let currentIndex = data.currentTurnIndex || 0;
-
-                const allZero = turnOrder.every(p => playerDiceMap[p] === 0);
-                if (allZero) {
-                    if (data.status !== 'ended') {
-                        await vegasRoomRef.update({ status: 'ended' });
-                        calculateFinalResults(data);
-                    }
-                    return;
-                }
-
-                for (let i = 0; i < turnOrder.length; i++) {
-                    currentIndex = (currentIndex + 1) % turnOrder.length;
-                    if (playerDiceMap[turnOrder[currentIndex]] > 0) break;
-                }
-
-                await vegasRoomRef.update({ currentTurnIndex: currentIndex });
-            }
-
-            // 주사위 굴리기 (애니메이션 후 결과 생성)
-            document.getElementById('rollDiceBtn')?.addEventListener('click', () => {
-                const diceBox = document.getElementById('diceResultBox');
-
-                vegasRoomRef.once('value').then(snap => {
-                    const data = snap.val();
-                    const turnOrder = data.turnOrder || [];
-                    const currentIndex = data.currentTurnIndex || 0;
-                    const currentTurnPlayer = turnOrder[currentIndex];
-
-                    if (currentTurnPlayer !== myNickname) {
-                        return alert("아직 본인 차례가 아닙니다!");
-                    }
-
-                    const playerDiceMap = data.playerDice || {};
-                    const myCount = playerDiceMap[myNickname] || 0;
-
-                    if (myCount <= 0) return alert("남은 주사위가 없습니다!");
-
-                    diceBox.classList.add('rolling');
-                    diceBox.innerText = "🎲 🎲 🎲 🎲";
-
-                    setTimeout(() => {
-                        diceBox.classList.remove('rolling');
-                        currentRolledDice = [];
-                        for (let i = 0; i < myCount; i++) {
-                            currentRolledDice.push(Math.floor(Math.random() * 6) + 1);
-                        }
-                        diceBox.innerText = currentRolledDice.join('   ');
-                    }, 500);
-                });
-            });
-
-            // 카지노 클릭 시 주사위 배치 및 개수 차감 후 턴 넘김
-            window.placeVegasDice = async function(casinoNum) {
-                const snap = await vegasRoomRef.once('value');
-                const data = snap.val();
-                const turnOrder = data.turnOrder || [];
-                const currentIndex = data.currentTurnIndex || 0;
-
-                if (turnOrder[currentIndex] !== myNickname) {
-                    return alert("지금은 내 차례가 아닙니다!");
-                }
-                if (currentRolledDice.length === 0) {
-                    return alert("먼저 주사위를 굴려주세요!");
-                }
-
-                const matchingDice = currentRolledDice.filter(d => d === casinoNum);
-                if (matchingDice.length === 0) {
-                    return alert(`굴린 주사위 중에 ${casinoNum}번 눈이 없습니다! 다른 카지노를 선택하세요.`);
-                }
-
-                const usedCount = matchingDice.length;
-
-                vegasRoomRef.transaction((currentData) => {
-                    if (!currentData.casinos[casinoNum]) currentData.casinos[casinoNum] = [];
-                    for (let d of matchingDice) {
-                        currentData.casinos[casinoNum].push(myNickname);
-                    }
-                    currentData.playerDice[myNickname] -= usedCount;
-                    return currentData;
-                }, async (error, committed) => {
-                    if (committed) {
-                        alert(`${usedCount}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
-                        currentRolledDice = [];
-                        document.getElementById('diceResultBox').innerText = "READY";
-
-                        const freshSnap = await vegasRoomRef.once('value');
-                        await checkAndAdvanceTurn(freshSnap.val());
-                    }
-                });
-            };
-
-            async function calculateFinalResults(data) {
-                closeModal('vegasGameModal');
-                const prizes = data.prizes || {};
-                const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                const playersObj = data.players || {};
-                let totalEarnings = {};
-                Object.keys(playersObj).forEach(p => totalEarnings[p] = 0);
-
-                for (let i = 1; i <= 6; i++) {
-                    const prize = prizes[i] || 0;
-                    const diceList = casinos[i] || [];
-                    if (diceList.length === 0) continue;
-
-                    let counts = {};
-                    diceList.forEach(name => { counts[name] = (counts[name] || 0) + 1; });
-
-                    let countFrequency = {};
-                    Object.values(counts).forEach(cnt => { countFrequency[cnt] = (countFrequency[cnt] || 0) + 1; });
-
-                    let validCounts = {};
-                    Object.keys(counts).forEach(name => {
-                        let cnt = counts[name];
-                        if (countFrequency[cnt] === 1) validCounts[name] = cnt;
-                    });
-
-                    let sortedValid = Object.keys(validCounts).sort((a, b) => validCounts[b] - validCounts[a]);
-
-                    if (sortedValid.length > 0) {
-                        let winner = sortedValid[0];
-                        totalEarnings[winner] += prize;
-                    }
-                }
-
-                let finalRanking = Object.keys(totalEarnings).sort((a, b) => totalEarnings[b] - totalEarnings[a]);
-
-                let resultHtml = "";
-                let rank = 1;
-                finalRanking.forEach(name => {
-                    let crown = (rank === 1) ? " 👑" : "";
-                    resultHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${name}${crown}</span><span style="color: #2e7d32; font-weight: bold;">${totalEarnings[name].toLocaleString()}원</span></div>`;
-                    rank++;
-                });
-
-                document.getElementById('finalScoreBoard').innerHTML = resultHtml;
-                openModal('vegasResultModal');
-            }
-
-            // --- 기존 회원가입 및 미니게임 구동 코드 복구 ---
-            document.getElementById('submitSignup')?.addEventListener('click', async () => {
-                const name = document.getElementById('regName').value;
-                const age = document.getElementById('regAge').value;
-                const gender = document.getElementById('regGender').value;
-                const game = document.getElementById('regGame').value;
-                if (!name || !age || !gender || !game) return alert("모든 정보를 입력해주세요!");
-                try {
-                    await db.collection("users").add({ name, age, gender, favoriteGame: game, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                    alert(`${name}님 회원가입 완료!`); closeModal('signupModal');
-                } catch (e) { }
-            });
-
-            document.getElementById('submitMatch')?.addEventListener('click', async () => {
-                const prefAge = document.getElementById('matchAge').value;
-                const prefGender = document.getElementById('matchGender').value;
-                const prefGame = document.getElementById('matchGame').value;
-                if (!prefAge || !prefGender || !prefGame) return alert("조건을 선택해주세요!");
-                try {
-                    const snap = await db.collection("users").get(); let matched = [];
-                    snap.forEach(doc => {
-                        let u = doc.data(); let cnt = 0;
-                        if (u.age === prefAge) cnt++;
-                        if (u.gender === prefGender || prefGender === '상관없음') cnt++;
-                        if (u.favoriteGame === prefGame) cnt++;
-                        if (cnt >= 2) matched.push(u.name);
-                    });
-                    document.getElementById('matchResultText').innerHTML = matched.length > 0 ? `🎉 매칭 성공!<br><span style="color:#4CAF50; font-size:18px;">${matched.join(', ')}</span>` : `😢 조건에 맞는 팀원이 없습니다.`;
-                    closeModal('matchModal'); openModal('matchResultModal');
-                } catch (e) { }
-            });
-
-            const chatMessages = document.getElementById('chatMessages');
-            const chatMsgInput = document.getElementById('chatMsgInput');
-            const chatNameInput = document.getElementById('chatNameInput');
-            document.getElementById('sendChatBtn')?.addEventListener('click', () => {
-                const name = chatNameInput.value.trim() || "익명"; const text = chatMsgInput.value.trim();
-                if (!text) return;
-                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
-                chatMsgInput.value = '';
-            });
-            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
-                chatMessages.innerHTML = '';
-                const data = snapshot.val();
-                if (data) {
-                    Object.values(data).forEach(msg => {
-                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-            });
-
-            // 공룡 게임 구동 코드 복구
+            // 1. 공룡 게임
             const dinoCanvas = document.getElementById('dinoCanvas');
             if (dinoCanvas) {
                 const dCtx = dinoCanvas.getContext('2d');
                 let dinoTimer = 0, dinoScore = 0, cactusArray = [], dinoAnimation, isDinoPlaying = false, nextSpawnTimer = 0;
-                const dino = { x: 30, y: 110, width: 24, height: 26, dy: 0, jumpPower: 11, gravity: 0.6, isJumping: false, draw() { dCtx.fillStyle = '#4CAF50'; dCtx.fillRect(this.x+10, this.y, 14, 12); dCtx.fillRect(this.x+4, this.y+10, 16, 12); } };
+                const dino = {
+                    x: 30, y: 110, width: 24, height: 26, dy: 0, jumpPower: 11, gravity: 0.6, isJumping: false,
+                    draw() {
+                        dCtx.fillStyle = '#4CAF50'; dCtx.fillRect(this.x+10, this.y, 14, 12); dCtx.fillRect(this.x+4, this.y+10, 16, 12); dCtx.fillRect(this.x, this.y+10, 4, 4);
+                        dCtx.fillStyle = 'white'; dCtx.fillRect(this.x+18, this.y+2, 3, 3); dCtx.fillStyle = '#4CAF50';
+                        if (!this.isJumping) {
+                            if (Math.floor(dinoTimer/8)%2 === 0) { dCtx.fillRect(this.x+6, this.y+22, 4, 4); dCtx.fillRect(this.x+14, this.y+22, 4, 1); }
+                            else { dCtx.fillRect(this.x+6, this.y+22, 4, 1); dCtx.fillRect(this.x+14, this.y+22, 4, 4); }
+                        } else {
+                            dCtx.fillRect(this.x+6, this.y+22, 4, 2); dCtx.fillRect(this.x+14, this.y+22, 4, 2);
+                        }
+                    }
+                };
+                class Cactus {
+                    constructor() { this.width = 12+Math.random()*8; this.height = 20+Math.random()*20; this.x = 400; this.y = 140-this.height; }
+                    draw() { dCtx.fillStyle = '#f44336'; dCtx.fillRect(this.x, this.y, this.width, this.height); }
+                }
                 window.closeDinoModal = function() { closeModal('dinoModal'); cancelAnimationFrame(dinoAnimation); isDinoPlaying = false; };
                 function dinoLoop() {
                     dinoAnimation = requestAnimationFrame(dinoLoop); dinoTimer++;
                     dCtx.clearRect(0,0,400,150); dCtx.beginPath(); dCtx.moveTo(0,140); dCtx.lineTo(400,140); dCtx.stroke();
                     if(dinoTimer%5===0) document.getElementById('dinoScore').innerText = `Score: ${++dinoScore}`;
-                    if(dinoTimer >= nextSpawnTimer) { cactusArray.push({x:400, width:15, height:25, y:115}); nextSpawnTimer = dinoTimer + 60; }
+                    let speed = 3 * Math.min(1.5, 1+Math.floor(dinoScore/200)*0.1);
+                    if(dinoTimer >= nextSpawnTimer) { cactusArray.push(new Cactus()); nextSpawnTimer = dinoTimer + Math.floor((Math.floor(Math.random()*60)+70)/Math.min(1.5, 1+Math.floor(dinoScore/200)*0.1)); }
                     cactusArray.forEach((c, i, arr) => {
-                        if(c.x < -30) arr.splice(i,1); c.x -= 3;
+                        if(c.x < -30) arr.splice(i,1); c.x -= speed;
                         if(dino.x < c.x+c.width && dino.x+dino.width > c.x && dino.y < c.y+c.height && dino.y+dino.height > c.y) {
-                            cancelAnimationFrame(dinoAnimation); isDinoPlaying = false;
+                            cancelAnimationFrame(dinoAnimation); isDinoPlaying = false; 
                             setTimeout(() => saveAndShowRanking('dinoModal', "dino", "Dino Run", dinoScore), 300);
-                        }
-                        dCtx.fillStyle = '#f44336'; dCtx.fillRect(c.x, c.y, c.width, c.height);
+                        } c.draw();
                     });
-                    if(dino.isJumping){ dino.y -= dino.dy; dino.dy -= dino.gravity; if(dino.y >= 110){ dino.y = 110; dino.isJumping = false; } }
-                    dino.draw();
+                    if(dino.isJumping){ dino.y -= dino.dy; dino.dy -= dino.gravity; if(dino.y >= 110){ dino.y = 110; dino.isJumping = false; dino.dy = 0; } } dino.draw();
                 }
-                document.addEventListener('keydown', e => { if(e.code === 'Space' && !document.getElementById('dinoModal').classList.contains('hidden') && !dino.isJumping && isDinoPlaying) { e.preventDefault(); dino.isJumping=true; dino.dy=dino.jumpPower; } });
-                document.getElementById('startDino')?.addEventListener('click', () => { if(isDinoPlaying) return; dinoTimer=0; dinoScore=0; cactusArray=[]; isDinoPlaying=true; dinoLoop(); });
+                const doDinoJump = () => { if (!dino.isJumping && isDinoPlaying) { dino.isJumping = true; dino.dy = dino.jumpPower; } };
+                document.addEventListener('keydown', (e) => { if(e.code === 'Space' && !document.getElementById('dinoModal').classList.contains('hidden')) { e.preventDefault(); doDinoJump(); } });
+                dinoCanvas.addEventListener('mousedown', doDinoJump);
+                document.getElementById('startDino')?.addEventListener('click', () => {
+                    if(isDinoPlaying) return; cancelAnimationFrame(dinoAnimation); dinoTimer=0; dinoScore=0; cactusArray=[]; dino.y=110; dino.dy=0; dino.isJumping=false; isDinoPlaying=true; nextSpawnTimer=30; document.getElementById('dinoScore').innerText=`Score: 0`; dinoLoop();
+                });
+            }
+
+            // 2. 벽돌 깨기
+            const brickCanvas = document.getElementById('brickCanvas');
+            if (brickCanvas) {
+                const bCtx = brickCanvas.getContext('2d');
+                let brickAnimation, isBrickPlaying = false, brickScore = 0;
+                let ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }, paddle = { height: 10, width: 75, x: 162.5 };
+                let brickInfo = { row: 4, col: 5, width: 65, height: 20, padding: 10, offsetTop: 30, offsetLeft: 20 }, bricks = [];
+                window.closeBrickModal = function() { closeModal('brickModal'); cancelAnimationFrame(brickAnimation); isBrickPlaying = false; };
+                document.addEventListener("mousemove", (e) => {
+                    if(!document.getElementById('brickModal').classList.contains('hidden')){
+                        let relX = e.clientX - brickCanvas.getBoundingClientRect().left;
+                        if(relX > 0 && relX < 400) paddle.x = relX - paddle.width/2;
+                    }
+                });
+                function brickLoop() {
+                    brickAnimation = requestAnimationFrame(brickLoop); bCtx.clearRect(0,0,400,300);
+                    for(let c=0; c<brickInfo.col; c++){
+                        for(let r=0; r<brickInfo.row; r++){
+                            if(bricks[c][r].status === 1){
+                                let bX = (c*(brickInfo.width+brickInfo.padding))+brickInfo.offsetLeft, bY = (r*(brickInfo.height+brickInfo.padding))+brickInfo.offsetTop;
+                                bricks[c][r].x = bX; bricks[c][r].y = bY; bCtx.fillStyle = "#2196F3"; bCtx.fillRect(bX, bY, brickInfo.width, brickInfo.height);
+                                if(ball.x > bX && ball.x < bX+brickInfo.width && ball.y > bY && ball.y < bY+brickInfo.height){ ball.dy = -ball.dy; bricks[c][r].status = 0; brickScore++; document.getElementById('brickScore').innerText = `Score: ${brickScore}`; }
+                            }
+                        }
+                    }
+                    bCtx.beginPath(); bCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); bCtx.fillStyle = "#f44336"; bCtx.fill(); bCtx.closePath();
+                    bCtx.fillStyle = "#4CAF50"; bCtx.fillRect(paddle.x, 300-paddle.height, paddle.width, paddle.height);
+                    if(brickScore === brickInfo.row*brickInfo.col){ cancelAnimationFrame(brickAnimation); isBrickPlaying = false; setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", brickScore), 300); return; }
+                    if(ball.x+ball.dx > 400-ball.radius || ball.x+ball.dx < ball.radius) ball.dx = -ball.dx;
+                    if(ball.y+ball.dy < ball.radius) ball.dy = -ball.dy;
+                    else if(ball.y+ball.dy > 300-ball.radius){ 
+                        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) ball.dy = -ball.dy; 
+                        else{ cancelAnimationFrame(brickAnimation); isBrickPlaying = false; setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", brickScore), 300); return; } 
+                    }
+                    ball.x += ball.dx; ball.y += ball.dy;
+                }
+                document.getElementById('startBrick')?.addEventListener('click', () => {
+                    if(isBrickPlaying) return; cancelAnimationFrame(brickAnimation); bricks = [];
+                    for(let c=0; c<brickInfo.col; c++){ bricks[c] = []; for(let r=0; r<brickInfo.row; r++) bricks[c][r] = {x:0, y:0, status:1}; }
+                    ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }; paddle.x = 162.5; brickScore = 0; document.getElementById('brickScore').innerText = `Score: 0`; isBrickPlaying = true; brickLoop();
+                });
+            }
+
+            // 3. 플래피 버드
+            const flappyCanvas = document.getElementById('flappyCanvas');
+            if (flappyCanvas) {
+                const fCtx = flappyCanvas.getContext('2d');
+                let flappyAnimation, isFlappyPlaying = false, flappyScore = 0, frames = 0, bird = { x: 50, y: 150, radius: 10, velocity: 0, gravity: 0.3, jump: -5 }, pipes = [];
+                window.closeFlappyModal = function() { closeModal('flappyModal'); cancelAnimationFrame(flappyAnimation); isFlappyPlaying = false; };
+                function gameOverFlappy() { cancelAnimationFrame(flappyAnimation); isFlappyPlaying = false; setTimeout(() => saveAndShowRanking('flappyModal', "flappy", "플래피 버드", flappyScore), 300); }
+                function flappyLoop() {
+                    flappyAnimation = requestAnimationFrame(flappyLoop); fCtx.clearRect(0,0,300,400); frames++; bird.velocity += bird.gravity; bird.y += bird.velocity;
+                    fCtx.beginPath(); fCtx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2); fCtx.fillStyle = "#E53935"; fCtx.fill(); fCtx.closePath();
+                    if(frames%100 === 0){ let gap = 120; let pipeY = Math.random()*(400-gap-40)+20; pipes.push({x:300, y:pipeY, width:40, gap:gap, passed:false}); }
+                    pipes.forEach((p, i) => {
+                        p.x -= 2; fCtx.fillStyle = "#4CAF50"; fCtx.fillRect(p.x, 0, p.width, p.y); fCtx.fillRect(p.x, p.y+p.gap, p.width, 400-p.y-p.gap);
+                        if(!p.passed && p.x+p.width < bird.x){ flappyScore++; document.getElementById('flappyScore').innerText = `Score: ${flappyScore}`; p.passed = true; }
+                        if(p.x+p.width < 0) pipes.splice(i,1);
+                        if(bird.x+bird.radius > p.x && bird.x-bird.radius < p.x+p.width && (bird.y-bird.radius < p.y || bird.y+bird.radius > p.y+p.gap)){ gameOverFlappy(); }
+                    });
+                    if(bird.y+bird.radius >= 400 || bird.y-bird.radius <= 0){ gameOverFlappy(); }
+                }
+                flappyCanvas.addEventListener('mousedown', () => { if(isFlappyPlaying) bird.velocity = bird.jump; });
+                document.getElementById('startFlappy')?.addEventListener('click', () => { if(isFlappyPlaying) return; cancelAnimationFrame(flappyAnimation); bird.y=150; bird.velocity=0; pipes=[]; flappyScore=0; frames=0; document.getElementById('flappyScore').innerText=`Score: 0`; isFlappyPlaying=true; flappyLoop(); });
+            }
+
+            // 4. 스네이크 게임
+            const snakeCanvas = document.getElementById('snakeCanvas');
+            if (snakeCanvas) {
+                const sCtx = snakeCanvas.getContext('2d');
+                let snakeArr, appleObj, snakeScore, snakeDx, snakeDy, snakeInterval, isSnakePlaying = false, currentSpeed = 200;
+                window.closeSnakeModal = function() { closeModal('snakeModal'); clearTimeout(snakeInterval); isSnakePlaying = false; };
+                function drawSnake() {
+                    sCtx.clearRect(0,0,300,300); 
+                    sCtx.fillStyle = '#f44336'; sCtx.fillRect(appleObj.x, appleObj.y, 15, 15);
+                    snakeArr.forEach((part) => { sCtx.fillStyle = '#4CAF50'; sCtx.fillRect(part.x, part.y, 14, 14); });
+                    let headX = snakeArr[0].x + snakeDx, headY = snakeArr[0].y + snakeDy;
+                    if(headX < 0 || headX >= 300 || headY < 0 || headY >= 300 || snakeArr.some(p => p.x === headX && p.y === headY)){
+                        isSnakePlaying = false; setTimeout(() => saveAndShowRanking('snakeModal', "snake", "스네이크", snakeScore), 300); return;
+                    }
+                    snakeArr.unshift({x: headX, y: headY});
+                    if(headX === appleObj.x && headY === appleObj.y){ 
+                        snakeScore+=10; document.getElementById('snakeScore').innerText = `Score: ${snakeScore}`; 
+                        appleObj = { x: Math.floor(Math.random()*20)*15, y: Math.floor(Math.random()*20)*15 }; 
+                    } else { snakeArr.pop(); }
+                    if (isSnakePlaying) snakeInterval = setTimeout(drawSnake, currentSpeed);
+                }
+                document.addEventListener('keydown', e => {
+                    if(!document.getElementById('snakeModal').classList.contains('hidden') && isSnakePlaying){
+                        if(e.key === 'ArrowUp' && snakeDy === 0){ snakeDx=0; snakeDy=-15; }
+                        if(e.key === 'ArrowDown' && snakeDy === 0){ snakeDx=0; snakeDy=15; }
+                        if(e.key === 'ArrowLeft' && snakeDx === 0){ snakeDx=-15; snakeDy=0; }
+                        if(e.key === 'ArrowRight' && snakeDx === 0){ snakeDx=15; snakeDy=0; }
+                    }
+                });
+                document.getElementById('startSnake')?.addEventListener('click', () => {
+                    if(isSnakePlaying) return; clearTimeout(snakeInterval); 
+                    snakeArr = [{x: 150, y: 150}]; snakeDx = 15; snakeDy = 0; snakeScore = 0; currentSpeed = 200; 
+                    document.getElementById('snakeScore').innerText = `Score: 0`; 
+                    appleObj = { x: Math.floor(Math.random()*20)*15, y: Math.floor(Math.random()*20)*15 }; 
+                    isSnakePlaying = true; drawSnake();
+                });
+            }
+
+            // 5. 카드 짝맞추기 게임
+            const memoryBoard = document.getElementById('memoryBoard');
+            if (memoryBoard) {
+                const cardIcons = ['🎲', '🎲', '🃏', '🃏', '♟️', '♟️', '🎯', '🎯', '🧩', '🧩', '🏆', '🏆', '🎪', '🎪', '🕹️', '🕹️'];
+                let firstCard = null, secondCard = null, lockBoard = false, memoryAttempts = 0, matchedPairs = 0;
+                window.closeMemoryModal = function() { closeModal('memoryModal'); };
+                function flipCard() {
+                    if(lockBoard || this === firstCard) return;
+                    this.classList.add('flipped'); this.innerText = this.dataset.icon;
+                    if(!firstCard) { firstCard = this; return; }
+                    secondCard = this; lockBoard = true; memoryAttempts++;
+                    document.getElementById('memoryScore').innerText = `시도 횟수: ${memoryAttempts}`;
+                    if(firstCard.dataset.icon === secondCard.dataset.icon){
+                        matchedPairs++; firstCard.removeEventListener('click', flipCard); secondCard.removeEventListener('click', flipCard); 
+                        [firstCard, secondCard, lockBoard] = [null, null, false];
+                        if(matchedPairs === 8) setTimeout(() => saveAndShowRanking('memoryModal', 'memory', '카드 짝맞추기', 100 - memoryAttempts), 300);
+                    } else {
+                        setTimeout(() => { firstCard.classList.remove('flipped'); firstCard.innerText = ''; secondCard.classList.remove('flipped'); secondCard.innerText = ''; [firstCard, secondCard, lockBoard] = [null, null, false]; }, 800);
+                    }
+                }
+                document.getElementById('startMemory')?.addEventListener('click', () => {
+                    memoryBoard.innerHTML = ''; memoryAttempts = 0; matchedPairs = 0; 
+                    document.getElementById('memoryScore').innerText = `시도 횟수: 0`; 
+                    [firstCard, secondCard, lockBoard] = [null, null, true]; 
+                    const allCards = [];
+                    cardIcons.sort(() => Math.random() - 0.5).forEach(icon => {
+                        const card = document.createElement('div'); card.classList.add('memory-card', 'flipped');
+                        card.dataset.icon = icon; card.innerText = icon; card.addEventListener('click', flipCard); 
+                        memoryBoard.appendChild(card); allCards.push(card);
+                    });
+                    setTimeout(() => { allCards.forEach(c => { c.classList.remove('flipped'); c.innerText = ''; }); lockBoard = false; }, 2000);
+                });
             }
         });
     </script>
