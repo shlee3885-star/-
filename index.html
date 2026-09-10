@@ -73,7 +73,7 @@
         }
         .casino-card:hover { background: #ffe0b2; transform: scale(1.03); }
 
-        /* 🎲 주사위 흔들림 애니메이션 및 결과 박스 가시성 확보 스타일 */
+        /* 🎲 주사위 흔들림 애니메이션 */
         @keyframes diceShake {
             0% { transform: rotate(0deg) scale(1); }
             25% { transform: rotate(-15deg) scale(1.1); }
@@ -82,7 +82,7 @@
             100% { transform: rotate(0deg) scale(1); }
         }
         .rolling {
-            animation: diceShake 0.4s ease infinite;
+            animation: diceShake 0.3s ease infinite;
             color: #d32f2f !important;
         }
         #diceResultBox {
@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <!-- 🎲 라스베가스 방 입장 및 랜덤 생성 모달창 -->
+    <!-- 🎲 라스베가스 방 입장 모달창 -->
     <div id="vegasLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🎲 미니 라스베가스</h2>
@@ -200,8 +200,8 @@
             </div>
 
             <div style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin-top: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">주사위 굴리기 🎲</button>
-                <!-- 확실하게 숫자가 시각적으로 노출되도록 개선된 박스 -->
+                <!-- 주사위 굴리기 및 결과 확인 버튼 (클릭할 때마다 애니메이션 -> 결과 전환) -->
+                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">주사위 굴리기 🎲</button>
                 <div id="diceResultBox">READY</div>
             </div>
 
@@ -512,11 +512,12 @@
                 speakerIcon.innerText = (e.target.value == 0) ? "🔇" : "🔊";
             });
 
-            // --- 🎲 미니 라스베가스 방 시스템 및 주사위 출력 로직 최종 안정화 ---
+            // --- 🎲 미니 라스베가스 방 시스템 및 투 클릭 주사위 제어 ---
             let currentDice = [];
             let currentRoomCode = "";
             let myNickname = "";
             let vegasRoomRef = null;
+            let isRollingState = false; // 주사위 굴리는 중인지 여부
 
             document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
             document.getElementById('sideVegas')?.addEventListener('click', (e) => { e.preventDefault(); openModal('vegasLoginModal'); document.getElementById('sidebar')?.classList.remove('open'); });
@@ -560,27 +561,41 @@
                 }
                 closeModal('vegasModal');
                 currentDice = [];
+                isRollingState = false;
+                document.getElementById('rollDiceBtn').innerText = "주사위 굴리기 🎲";
                 document.getElementById('diceResultBox').innerText = "READY";
             };
 
+            // 🎲 주사위 버튼 클릭 핸들러 (1차 클릭: 애니메이션 시작 -> 2차 클릭: 결과 확정)
             document.getElementById('rollDiceBtn')?.addEventListener('click', () => {
                 const diceBox = document.getElementById('diceResultBox');
-                diceBox.classList.add('rolling');
-                diceBox.innerText = "🎲 🎲 🎲 🎲";
-                document.getElementById('vegasStatus').innerText = "주사위가 데굴데굴 구르는 중... 🎲";
+                const rollBtn = document.getElementById('rollDiceBtn');
 
-                setTimeout(() => {
+                if (!isRollingState) {
+                    // 첫 번째 클릭: 애니메이션 시작
+                    isRollingState = true;
+                    diceBox.classList.add('rolling');
+                    diceBox.innerText = "🎲 🎲 🎲 🎲";
+                    rollBtn.innerText = "결과 확인! (클릭)";
+                    rollBtn.style.backgroundColor = "#e65100";
+                    document.getElementById('vegasStatus').innerText = "주사위가 구르는 중... 멈추려면 버튼을 다시 누르세요!";
+                } else {
+                    // 두 번째 클릭: 결과 확정
+                    isRollingState = false;
                     diceBox.classList.remove('rolling');
+                    
                     currentDice = [
                         Math.floor(Math.random()*6)+1, 
                         Math.floor(Math.random()*6)+1, 
                         Math.floor(Math.random()*6)+1, 
                         Math.floor(Math.random()*6)+1
                     ];
-                    // 확실히 가시성 있게 숫자가 나열되도록 갱신
+
                     diceBox.innerText = currentDice.join('   ');
-                    document.getElementById('vegasStatus').innerText = "카지노(1~6)를 클릭해 주사위를 배치하세요!";
-                }, 600);
+                    rollBtn.innerText = "주사위 굴리기 🎲";
+                    rollBtn.style.backgroundColor = "#4CAF50";
+                    document.getElementById('vegasStatus').innerText = "카지노(1~6번)를 클릭해 주사위를 배치하세요!";
+                }
             });
 
             function listenVegasRoom() {
@@ -612,7 +627,8 @@
 
             window.placeVegasDice = async function(casinoNum) {
                 if (!myNickname) return;
-                if (currentDice.length === 0) return alert("먼저 주사위를 굴려주세요!");
+                if (currentDice.length === 0) return alert("먼저 주사위를 굴려서 결과를 확인해주세요!");
+                if (isRollingState) return alert("주사위가 아직 구르고 있습니다! 결과를 먼저 확인하세요.");
 
                 const matchingDice = currentDice.filter(d => d === casinoNum);
                 if (matchingDice.length === 0) {
@@ -632,6 +648,9 @@
                     if (committed) {
                         alert(`${matchingDice.length}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
                         currentDice = [];
+                        isRollingState = false;
+                        document.getElementById('rollDiceBtn').innerText = "주사위 굴리기 🎲";
+                        document.getElementById('rollDiceBtn').style.backgroundColor = "#4CAF50";
                         document.getElementById('diceResultBox').innerText = "READY";
                         document.getElementById('vegasStatus').innerText = "주사위를 다 쓰셨습니다. 다시 굴려보세요.";
                     }
