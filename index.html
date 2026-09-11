@@ -423,6 +423,17 @@
         </div>
     </div>
 
+    <!-- ⚪ 알까기 게임 결과 모달창 (alert 대체) -->
+    <div id="alkaResultModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center; width: 380px;">
+            <h2>🏆 알까기 대전 결과</h2>
+            <div id="alkaResultText" style="margin: 20px 0; font-size: 16px; font-weight: bold; color: #2e7d32; background: #f9f9f9; padding: 15px; border-radius: 8px;"></div>
+            <div class="modal-buttons" style="justify-content: center;">
+                <button class="close-btn" style="width: 100%; background-color: #4CAF50;" onclick="closeModal('alkaResultModal')">확인</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 미니게임 모달창들 -->
     <div id="dinoModal" class="modal hidden">
         <div class="modal-content dino-content">
@@ -639,7 +650,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (자유선택, 새총원리 즉시발사 애니메이션 루프, 닉네임 표기) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -762,7 +773,9 @@
                     if (data.status === 'ended') {
                         if (!document.getElementById('alkaGameModal').classList.contains('hidden')) {
                             closeModal('alkaGameModal');
-                            alert(`🏆 게임 종료! 결과: ${data.resultMsg}`);
+                            // 🌟 [요청 반영] alert창 대신 별도의 예쁜 결과 모달창으로 표시
+                            document.getElementById('alkaResultText').innerText = `🏆 게임 종료!\n결과: ${data.resultMsg}`;
+                            openModal('alkaResultModal');
                         }
                         return;
                     }
@@ -801,7 +814,7 @@
                 const hostStones = stones.filter(s => s.type === 'host').length;
                 const guestStones = stones.filter(s => s.type === 'guest').length;
                 
-                // 🌟 [요청 반영] 검은돌(호스트닉네임) : 5개 | 하얀돌(게스트닉네임) : 5개 표기
+                // 🌟 [요청 반영] 검은돌(닉네임) : 개수 | 하얀돌(닉네임) : 개수 표기
                 const hostLabel = data.hostName ? `검은돌(${data.hostName})` : '검은돌(호스트)';
                 const guestLabel = data.guestName ? `하얀돌(${data.guestName})` : '하얀돌(게스트)';
                 statusBox.innerText = `${hostLabel}: ${hostStones}개 | ${guestLabel}: ${guestStones}개`;
@@ -835,7 +848,6 @@
                 });
             }
 
-            // 알까기 캔버스 마우스 이벤트 바인딩 (새총 원리 & 놓는 순간 곧바로 발사 및 애니메이션)
             if (alkaGameCanvas) {
                 alkaGameCanvas.onmousedown = (e) => {
                     alkaRoomRef?.once('value', (snap) => {
@@ -879,13 +891,11 @@
                         const s = stones[alkaSelectedStoneIdx];
 
                         if (s) {
-                            // 🌟 [새총 원리] 뒤로 당긴 방향(dragStart - dragCurrent)으로 발사 벡터 부여
                             const dx = alkaDragStart.x - alkaDragCurrent.x;
                             const dy = alkaDragStart.y - alkaDragCurrent.y;
                             s.vx = dx * 0.18;
                             s.vy = dy * 0.18;
 
-                            // 🌟 [부드러운 실시간 애니메이션 루프 실행] 마우스 뗄 때 곧바로 구르기 시작
                             runAlkaSmoothAnimation(stones, data);
                         }
                     });
@@ -915,7 +925,6 @@
                         }
                     });
 
-                    // 🌟 [탄성 충돌 반동] 부딪힐 때 양쪽 다 튕겨 나감
                     for (let i = 0; i < stones.length; i++) {
                         for (let j = i + 1; j < stones.length; j++) {
                             let s1 = stones[i];
