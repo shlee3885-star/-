@@ -650,7 +650,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (순수 동기식 마우스 해제 발사 보장) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (안정적인 마우스 이벤트 핸들러) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -851,7 +851,7 @@
                 });
             }
 
-            // 🌟 [안정화된 동기식 마우스 핸들러] 드래그 및 마우스 놓을 때 곧바로 발사
+            // 🌟 [전역 윈도우 이벤트 리스너 적용] 캔버스 밖으로 마우스가 나가도 입력이 끊기지 않도록 보완
             if (alkaGameCanvas) {
                 alkaGameCanvas.onmousedown = (e) => {
                     if (currentTurnCache !== alkaNickname || isAlkaDragging || isAlkaAnimating) return;
@@ -869,15 +869,15 @@
                     }
                 };
 
-                alkaGameCanvas.onmousemove = (e) => {
-                    if (!isAlkaDragging) return;
+                window.addEventListener('mousemove', (e) => {
+                    if (!isAlkaDragging || document.getElementById('alkaGameModal').classList.contains('hidden')) return;
                     const rect = alkaGameCanvas.getBoundingClientRect();
                     alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
                     renderAlkaBoardPreview(currentStonesCache);
-                };
+                });
 
-                alkaGameCanvas.onmouseup = () => {
-                    if (!isAlkaDragging) return;
+                window.addEventListener('mouseup', () => {
+                    if (!isAlkaDragging || document.getElementById('alkaGameModal').classList.contains('hidden')) return;
                     isAlkaDragging = false;
 
                     const s = currentStonesCache[alkaSelectedStoneIdx];
@@ -892,7 +892,7 @@
                             runAlkaSmoothAnimation(currentStonesCache, data);
                         });
                     }
-                };
+                });
             }
 
             function runAlkaSmoothAnimation(stones, data) {
