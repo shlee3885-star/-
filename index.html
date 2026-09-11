@@ -114,7 +114,7 @@
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
         .modal-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
         .modal-buttons button { padding: 10px; width: 48%; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #submitSignup, #submitMatch, #startDino, #startBrick, #startFlappy, #startSnake, #startMemory, #startAlkagaki { background-color: #2196F3; color: white; }
+        #submitSignup, #submitMatch, #startDino, #startBrick, #startFlappy, #startSnake, #startMemory, #startAlkaRoom { background-color: #2196F3; color: white; }
         .close-btn { background-color: #f44336; color: white; }
         .hidden { display: none !important; }
     </style>
@@ -135,6 +135,7 @@
         <h2>보드게임</h2>
         <ul>
             <li><a href="#" id="sideVegas">🎲 라스베가스</a></li>
+            <li><a href="#" id="sideAlka">⚪ 알까기 (온라인)</a></li>
             <li><a href="#" id="sideSignup">📝 회원가입</a></li>
             <li><a href="#" id="sideRandom">🎲 랜덤 게임 추천</a></li>
             <li><a href="#" id="sideMatch">🤝 팀원 찾기</a></li>
@@ -142,7 +143,6 @@
         </ul>
         <h2>미니 게임</h2>
         <ul>
-            <li><a href="#" id="sideAlkagaki">⚪ 알까기</a></li>
             <li><a href="#" id="sideDino">🦖 Dino Run</a></li>
             <li><a href="#" id="sideBrick">🧱 벽돌 깨기</a></li>
             <li><a href="#" id="sideFlappy">🐦 플래피 버드</a></li>
@@ -151,7 +151,7 @@
         </ul>
         <h2>🏆 랭킹 보기</h2>
         <ul>
-            <li><a href="#" id="rankAlkagaki">⚪ 알까기 랭킹</a></li>
+            <li><a href="#" id="rankAlka">⚪ 알까기 랭킹</a></li>
             <li><a href="#" id="rankDino">🦖 Dino Run 랭킹</a></li>
             <li><a href="#" id="rankBrick">🧱 벽돌 깨기 랭킹</a></li>
             <li><a href="#" id="rankFlappy">🐦 플래피 버드 랭킹</a></li>
@@ -165,7 +165,7 @@
         <h1>🎮 미니게임 파티</h1>
         <div class="button-group">
             <button id="btnVegas" style="background-color: #ff9800;">🎲 라스베가스</button>
-            <button id="btnAlkagaki" style="background-color: #607d8b;">⚪ 알까기</button>
+            <button id="btnAlka" style="background-color: #607d8b;">⚪ 알까기 (온라인)</button>
             <button id="btnDino">🦖 Dino Run</button>
             <button id="btnBrick">🧱 벽돌 깨기</button>
             <button id="btnFlappy">🐦 플래피 버드</button>
@@ -371,16 +371,54 @@
         </div>
     </div>
 
-    <!-- ⚪ 알까기 미니게임 모달창 -->
-    <div id="alkagakiModal" class="modal hidden">
+    <!-- ⚪ 알까기 온라인 방 로그인 모달창 -->
+    <div id="alkaLoginModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h2>⚪ 알까기 온라인 대전</h2>
+            <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 친구와 대결하세요! (최대 2명)</p>
+            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                <input type="text" id="alkaRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
+                <button id="alkaRandomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
+            </div>
+            <input type="text" id="alkaNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
+            <div class="modal-buttons">
+                <button id="joinAlkaRoomBtn" style="background-color: #607d8b; color: white; width: 100%;">대기실 입장하기</button>
+            </div>
+            <div class="modal-buttons" style="margin-top: 5px;">
+                <button class="close-btn" style="width: 100%;" onclick="closeModal('alkaLoginModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚪ 알까기 대기실 모달창 -->
+    <div id="alkaLobbyModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="alkaLobbyTitle" style="margin: 0; font-size: 18px;">⚪ 알까기 대기실</h2>
+                <button id="copyAlkaCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
+            </div>
+            <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; text-align: left; margin: 5px 0;">
+                <strong>참여 중인 플레이어 (2명):</strong>
+                <ul id="alkaPlayersList" style="margin: 4px 0 0 20px; padding: 0; font-size: 13px; color: #333;"></ul>
+            </div>
+            <div class="modal-buttons">
+                <button id="startAlkaGameBtn" style="background-color: #4CAF50; color: white; width: 100%; padding: 10px;">게임 시작하기 🚀</button>
+            </div>
+            <div class="modal-buttons" style="margin-top: 5px;">
+                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveAlkaLobby()">나가기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚪ 알까기 실전 게임 모달창 -->
+    <div id="alkaGameModal" class="modal hidden">
         <div class="modal-content dino-content" style="width: 380px;">
-            <h2>⚪ 알까기 게임</h2>
-            <p style="font-size: 12px; color: #666;">내 돌(검은돌)을 뒤로 당겨서 앞(적 방향)으로 쏘세요!</p>
-            <canvas id="alkagakiCanvas" width="340" height="340"></canvas>
-            <h3 id="alkagakiScore" style="margin: 5px 0;">남은 적 돌: 5개</h3>
+            <h2 id="alkaGameTitle">⚪ 알까기 실전 대전</h2>
+            <div id="alkaTurnBox" style="font-size: 12px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 5px; border-radius: 4px;">턴 대기 중...</div>
+            <canvas id="alkaGameCanvas" width="340" height="340"></canvas>
+            <h3 id="alkaGameStatus" style="margin: 5px 0;">상태 확인 중</h3>
             <div class="modal-buttons" style="justify-content: center; gap: 10px;">
-                <button id="startAlkagaki">게임 시작</button>
-                <button class="close-btn" onclick="closeAlkagakiModal()">닫기</button>
+                <button class="close-btn" style="width: 100%; background-color: #757575;" onclick="leaveAlkaGame()">게임 포기 및 나가기</button>
             </div>
         </div>
     </div>
@@ -469,7 +507,7 @@
             { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -565,7 +603,7 @@
 
             // --- 📌 메인 홈 화면 버튼 바인딩 ---
             document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
-            document.getElementById('btnAlkagaki')?.addEventListener('click', () => openModal('alkagakiModal'));
+            document.getElementById('btnAlka')?.addEventListener('click', () => openModal('alkaLoginModal'));
             document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
             document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
             document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
@@ -579,7 +617,7 @@
 
             const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
             bindSide('sideVegas', () => openModal('vegasLoginModal'));
-            bindSide('sideAlkagaki', () => openModal('alkagakiModal'));
+            bindSide('sideAlka', () => openModal('alkaLoginModal'));
             bindSide('sideSignup', () => openModal('signupModal'));
             bindSide('sideRandom', () => {
                 const g = games[Math.floor(Math.random() * games.length)];
@@ -594,218 +632,237 @@
             bindSide('sideSnake', () => openModal('snakeModal'));
             bindSide('sideMemory', () => openModal('memoryModal'));
 
-            bindSide('rankAlkagaki', () => fetchAndShowRanking("alkagaki", "알까기"));
+            bindSide('rankAlka', () => fetchAndShowRanking("alkagaki", "알까기"));
             bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
             bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
             bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알카기 미니게임 구현 (새총 원리: 뒤로 당기면 앞으로 발사) ---
-            const alkagakiCanvas = document.getElementById('alkagakiCanvas');
-            if (alkagakiCanvas) {
-                const aCtx = alkagakiCanvas.getContext('2d');
-                let alkagakiAnim, isAlkaPlaying = false;
-                let stones = [];
-                let isDragging = false;
-                let dragStart = { x: 0, y: 0 };
-                let dragCurrent = { x: 0, y: 0 };
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (마우스 뗄 때 발사, 새총 원리) ---
+            let alkaRoomCode = "";
+            let alkaNickname = "";
+            let alkaRoomRef = null;
+            let myRole = ""; // 'host' (검은돌, 아래쪽) 또는 'guest' (하얀돌, 위쪽)
+            let isAlkaDragging = false;
+            let alkaDragStart = { x: 0, y: 0 };
+            let alkaDragCurrent = { x: 0, y: 0 };
+            let alkaSelectedStoneIdx = null;
 
-                window.closeAlkagakiModal = function() {
-                    closeModal('alkagakiModal');
-                    cancelAnimationFrame(alkagakiAnim);
-                    isAlkaPlaying = false;
-                };
+            document.getElementById('alkaRandomRoomBtn')?.addEventListener('click', () => {
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                let randomCode = "";
+                for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+                document.getElementById('alkaRoomCode').value = randomCode;
+            });
 
-                function initAlkagakiStones() {
-                    stones = [
-                        // 내 돌 5개 (아래쪽 배치)
-                        { x: 170, y: 280, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
-                        { x: 120, y: 295, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
-                        { x: 220, y: 295, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
-                        { x: 70, y: 310, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
-                        { x: 270, y: 310, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+            document.getElementById('joinAlkaRoomBtn')?.addEventListener('click', async () => {
+                const roomCode = document.getElementById('alkaRoomCode').value.trim().toUpperCase();
+                const name = document.getElementById('alkaNickname').value.trim();
+                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
 
-                        // 적 돌 5개 (위쪽 배치)
-                        { x: 170, y: 60, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
-                        { x: 120, y: 45, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
-                        { x: 220, y: 45, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
-                        { x: 70, y: 30, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
-                        { x: 270, y: 30, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' }
-                    ];
+                const roomRef = rtdb.ref(`alkagaki_rooms/${roomCode}`);
+                const snap = await roomRef.once('value');
+                const roomData = snap.val();
+
+                if (roomData && roomData.status === 'playing') {
+                    return alert("이미 게임이 진행 중인 방입니다!");
                 }
 
-                alkagakiCanvas.addEventListener('mousedown', (e) => {
-                    if (!isAlkaPlaying) return;
-                    const rect = alkagakiCanvas.getBoundingClientRect();
+                const players = roomData ? (roomData.players || {}) : {};
+                if (Object.keys(players).length >= 2 && !players[name]) {
+                    return alert("방 인원이 가득 찼습니다 (최대 2명)!");
+                }
+
+                alkaRoomCode = roomCode;
+                alkaNickname = name;
+                alkaRoomRef = roomRef;
+
+                await roomRef.child(`players/${alkaNickname}`).set(true);
+
+                closeModal('alkaLoginModal');
+                document.getElementById('alkaLobbyTitle').innerText = `⚪ 알까기 대기실 [방: ${alkaRoomCode}]`;
+                openModal('alkaLobbyModal');
+                listenAlkaRoom();
+            });
+
+            document.getElementById('copyAlkaCodeBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(alkaRoomCode).then(() => {
+                    alert(`방 코드 [${alkaRoomCode}] 복사 완료!`);
+                });
+            });
+
+            window.leaveAlkaLobby = function() {
+                if (alkaRoomRef && alkaNickname) {
+                    alkaRoomRef.child(`players/${alkaNickname}`).remove();
+                    alkaRoomRef.off();
+                }
+                closeModal('alkaLobbyModal');
+            };
+
+            window.leaveAlkaGame = function() {
+                leaveAlkaLobby();
+                closeModal('alkaGameModal');
+            };
+
+            document.getElementById('startAlkaGameBtn')?.addEventListener('click', async () => {
+                const snap = await alkaRoomRef.once('value');
+                const data = snap.val();
+                const playersObj = data.players || {};
+                const playerNames = Object.keys(playersObj);
+
+                if (playerNames.length < 2) return alert("친구 1명이 더 입장해야 시작할 수 있습니다!");
+
+                // 호스트와 게스트 지정
+                let initialStones = [
+                    // 호스트 돌 5개 (검은돌, 아래쪽)
+                    { x: 170, y: 280, vx: 0, vy: 0, radius: 12, type: 'host', color: '#222' },
+                    { x: 120, y: 295, vx: 0, vy: 0, radius: 12, type: 'host', color: '#222' },
+                    { x: 220, y: 295, vx: 0, vy: 0, radius: 12, type: 'host', color: '#222' },
+                    { x: 70, y: 310, vx: 0, vy: 0, radius: 12, type: 'host', color: '#222' },
+                    { x: 270, y: 310, vx: 0, vy: 0, radius: 12, type: 'host', color: '#222' },
+
+                    // 게스트 돌 5개 (하얀돌, 위쪽)
+                    { x: 170, y: 60, vx: 0, vy: 0, radius: 12, type: 'guest', color: '#fff' },
+                    { x: 120, y: 45, vx: 0, vy: 0, radius: 12, type: 'guest', color: '#fff' },
+                    { x: 220, y: 45, vx: 0, vy: 0, radius: 12, type: 'guest', color: '#fff' },
+                    { x: 70, y: 30, vx: 0, vy: 0, radius: 12, type: 'guest', color: '#fff' },
+                    { x: 270, y: 30, vx: 0, vy: 0, radius: 12, type: 'guest', color: '#fff' }
+                ];
+
+                await alkaRoomRef.update({
+                    status: 'playing',
+                    hostName: playerNames[0],
+                    guestName: playerNames[1],
+                    currentTurn: playerNames[0],
+                    stones: initialStones
+                });
+            });
+
+            function listenAlkaRoom() {
+                if (!alkaRoomRef) return;
+                alkaRoomRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) return;
+
+                    const playersObj = data.players || {};
+                    const playerNames = Object.keys(playersObj);
+                    let listHtml = "";
+                    playerNames.forEach(p => {
+                        listHtml += `<li>${p} ${p === alkaNickname ? '(나)' : ''}</li>`;
+                    });
+                    document.getElementById('alkaPlayersList').innerHTML = listHtml;
+
+                    if (data.status === 'playing') {
+                        if (!document.getElementById('alkaLobbyModal').classList.contains('hidden')) {
+                            closeModal('alkaLobbyModal');
+                            openModal('alkaGameModal');
+                        }
+
+                        if (alkaNickname === data.hostName) myRole = 'host';
+                        else if (alkaNickname === data.guestName) myRole = 'guest';
+
+                        updateAlkaGameScreen(data);
+                    }
+                });
+            }
+
+            const alkaGameCanvas = document.getElementById('alkaGameCanvas');
+            const alkaCtx = alkaGameCanvas?.getContext('2d');
+
+            function updateAlkaGameScreen(data) {
+                const turnBox = document.getElementById('alkaTurnBox');
+                const statusBox = document.getElementById('alkaGameStatus');
+                const isMyTurn = data.currentTurn === alkaNickname;
+
+                if (isMyTurn) {
+                    turnBox.innerText = "🔥 [ 내 차례입니다! 돌을 당겨서 발사하세요 ]";
+                    turnBox.style.backgroundColor = "#e8f5e9";
+                } else {
+                    turnBox.innerText = `⏳ 상대방(${data.currentTurn})의 턴입니다...`;
+                    turnBox.style.backgroundColor = "#fff8e1";
+                }
+
+                const stones = data.stones || [];
+                const hostStones = stones.filter(s => s.type === 'host').length;
+                const guestStones = stones.filter(s => s.type === 'guest').length;
+                statusBox.innerText = `검은돌(호스트): ${hostStones}개 | 하얀돌(게스트): ${guestStones}개`;
+
+                // 캔버스 렌더링 및 물리 루프
+                renderAlkaBoard(stones, isMyTurn, data);
+            }
+
+            function renderAlkaBoard(stones, isMyTurn, data) {
+                if (!alkaCtx) return;
+                alkaCtx.clearRect(0, 0, 340, 340);
+
+                // 보드판
+                alkaCtx.fillStyle = '#deb887';
+                alkaCtx.fillRect(0, 0, 340, 340);
+                alkaCtx.strokeStyle = '#8b4513';
+                alkaCtx.lineWidth = 6;
+                alkaCtx.strokeRect(3, 3, 334, 334);
+
+                stones.forEach(s => {
+                    alkaCtx.beginPath();
+                    alkaCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                    alkaCtx.fillStyle = s.color;
+                    alkaCtx.shadowColor = 'rgba(0,0,0,0.3)';
+                    alkaCtx.shadowBlur = 4;
+                    alkaCtx.fill();
+                    alkaCtx.closePath();
+                    alkaCtx.shadowBlur = 0;
+                    alkaCtx.strokeStyle = '#333';
+                    alkaCtx.lineWidth = 1.5;
+                    alkaCtx.stroke();
+                });
+
+                // 🌟 [요청 반영] 마우스 뗄 때 바로 발사되도록 mouseup 이벤트 처리
+                alkaGameCanvas.onmousedown = (e) => {
+                    if (!isMyTurn || isAlkaDragging) return;
+                    const rect = alkaGameCanvas.getBoundingClientRect();
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
-                    const myStone = stones.find(s => s.type === 'my' && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
-                    if (myStone) {
-                        isDragging = true;
-                        dragStart = { x: myStone.x, y: myStone.y };
-                        dragCurrent = { x: mouseX, y: mouseY };
+                    // 내 역할에 맞는 돌만 선택 가능
+                    const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
+                    if (myStoneIdx !== -1) {
+                        isAlkaDragging = true;
+                        alkaSelectedStoneIdx = myStoneIdx;
+                        alkaDragStart = { x: stones[myStoneIdx].x, y: stones[myStoneIdx].y };
+                        alkaDragCurrent = { x: mouseX, y: mouseY };
                     }
-                });
+                };
 
-                alkagakiCanvas.addEventListener('mousemove', (e) => {
-                    if (!isDragging || !isAlkaPlaying) return;
-                    const rect = alkagakiCanvas.getBoundingClientRect();
-                    dragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-                });
+                alkaGameCanvas.onmousemove = (e) => {
+                    if (!isAlkaDragging || !isMyTurn) return;
+                    const rect = alkaGameCanvas.getBoundingClientRect();
+                    alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                };
 
-                alkagakiCanvas.addEventListener('mouseup', () => {
-                    if (!isDragging || !isAlkaPlaying) return;
-                    isDragging = false;
-                    const myStone = stones.find(s => s.type === 'my');
-                    if (myStone) {
-                        // 🌟 [새총 원리 반영] 마우스를 뒤로 당긴 방향과 '동일한 방향(당긴 방향)'으로 돌이 발사되도록 설정 (당기면 그쪽으로 튀어나감)
-                        const dx = dragCurrent.x - dragStart.x;
-                        const dy = dragCurrent.y - dragStart.y;
-                        myStone.vx = dx * 0.18;
-                        myStone.vy = dy * 0.18;
-                    }
-                });
+                alkaGameCanvas.onmouseup = async () => {
+                    if (!isAlkaDragging || !isMyTurn) return;
+                    isAlkaDragging = false;
 
-                function alkagakiLoop() {
-                    alkagakiAnim = requestAnimationFrame(alkagakiLoop);
-                    aCtx.clearRect(0, 0, 340, 340);
+                    const s = stones[alkaSelectedStoneIdx];
+                    if (s) {
+                        // 🌟 [새총 원리] 당긴 방향대로 발사
+                        const dx = alkaDragCurrent.x - alkaDragStart.x;
+                        const dy = alkaDragCurrent.y - alkaDragStart.y;
+                        s.vx = dx * 0.18;
+                        s.vy = dy * 0.18;
 
-                    // 보드판 그리기
-                    aCtx.fillStyle = '#deb887';
-                    aCtx.fillRect(0, 0, 340, 340);
-                    aCtx.strokeStyle = '#8b4513';
-                    aCtx.lineWidth = 6;
-                    aCtx.strokeRect(3, 3, 334, 334);
-
-                    // 돌 물리 연산 및 아웃 판정
-                    stones.forEach(s => {
+                        // 간단한 움직임 시뮬레이션 후 Firebase 동기화 및 턴 넘기기
                         s.x += s.vx;
                         s.y += s.vy;
-                        s.vx *= 0.96;
-                        s.vy *= 0.96;
 
-                        if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
-                            s.out = true;
-                        }
-                    });
-
-                    // 돌끼리 충돌 처리
-                    for (let i = 0; i < stones.length; i++) {
-                        for (let j = i + 1; j < stones.length; j++) {
-                            let s1 = stones[i];
-                            let s2 = stones[j];
-                            if (s1.out || s2.out) continue;
-
-                            let dx = s2.x - s1.x;
-                            let dy = s2.y - s1.y;
-                            let dist = Math.hypot(dx, dy);
-                            let minDist = s1.radius + s2.radius;
-
-                            if (dist < minDist) {
-                                let angle = Math.atan2(dy, dx);
-                                let overlap = minDist - dist;
-                                s1.x -= Math.cos(angle) * overlap / 2;
-                                s1.y -= Math.sin(angle) * overlap / 2;
-                                s2.x += Math.cos(angle) * overlap / 2;
-                                s2.y += Math.sin(angle) * overlap / 2;
-
-                                let tempVx = s1.vx;
-                                let tempVy = s1.vy;
-                                s1.vx = s2.vx * 0.9;
-                                s1.vy = s2.vy * 0.9;
-                                s2.vx = tempVx * 0.9;
-                                s2.vy = tempVy * 0.9;
-                            }
-                        }
+                        const nextTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
+                        await alkaRoomRef.update({
+                            stones: stones,
+                            currentTurn: nextTurn
+                        });
                     }
-
-                    stones = stones.filter(s => !s.out);
-
-                    // 돌 그리기
-                    stones.forEach(s => {
-                        aCtx.beginPath();
-                        aCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-                        aCtx.fillStyle = s.color;
-                        aCtx.shadowColor = 'rgba(0,0,0,0.3)';
-                        aCtx.shadowBlur = 4;
-                        aCtx.fill();
-                        aCtx.closePath();
-                        aCtx.shadowBlur = 0;
-                        aCtx.strokeStyle = '#333';
-                        aCtx.lineWidth = 1.5;
-                        aCtx.stroke();
-                    });
-
-                    // 🌟 [새총 원리 화살표 및 Power 게이지] 마우스 드래그 방향으로 화살표 표시
-                    if (isDragging) {
-                        const myStone = stones.find(s => s.type === 'my');
-                        if (myStone) {
-                            const dx = dragCurrent.x - dragStart.x;
-                            const dy = dragCurrent.y - dragStart.y;
-                            const pullDist = Math.hypot(dx, dy);
-
-                            const angle = Math.atan2(dy, dx);
-                            const arrowLength = Math.min(pullDist * 1.5, 120);
-
-                            aCtx.beginPath();
-                            aCtx.moveTo(myStone.x, myStone.y);
-                            aCtx.lineTo(myStone.x + Math.cos(angle) * arrowLength, myStone.y + Math.sin(angle) * arrowLength);
-                            aCtx.strokeStyle = '#ff3b30';
-                            aCtx.lineWidth = 4;
-                            aCtx.stroke();
-                            aCtx.closePath();
-
-                            const tipX = myStone.x + Math.cos(angle) * arrowLength;
-                            const tipY = myStone.y + Math.sin(angle) * arrowLength;
-                            aCtx.beginPath();
-                            aCtx.moveTo(tipX, tipY);
-                            aCtx.lineTo(tipX - 10 * Math.cos(angle - Math.PI/6), tipY - 10 * Math.sin(angle - Math.PI/6));
-                            aCtx.lineTo(tipX - 10 * Math.cos(angle + Math.PI/6), tipY - 10 * Math.sin(angle + Math.PI/6));
-                            aCtx.fillStyle = '#ff3b30';
-                            aCtx.fill();
-                            aCtx.closePath();
-
-                            const gaugeHeight = Math.min(pullDist * 1.2, 150);
-                            aCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                            aCtx.fillRect(315, 95, 14, 152);
-
-                            let gaugeColor = '#4CD964';
-                            if (gaugeHeight > 50) gaugeColor = '#FF9500';
-                            if (gaugeHeight > 100) gaugeColor = '#FF3B30';
-
-                            aCtx.fillStyle = gaugeColor;
-                            aCtx.fillRect(317, 245 - gaugeHeight, 10, gaugeHeight);
-
-                            aCtx.fillStyle = '#333';
-                            aCtx.font = 'bold 10px sans-serif';
-                            aCtx.fillText('POWER', 305, 88);
-                        }
-                    }
-
-                    const enemyCount = stones.filter(s => s.type === 'enemy').length;
-                    const myCount = stones.filter(s => s.type === 'my').length;
-                    document.getElementById('alkagakiScore').innerText = `남은 적 돌: ${enemyCount}개 (내 돌: ${myCount}개)`;
-
-                    if (enemyCount === 0) {
-                        cancelAnimationFrame(alkagakiAnim);
-                        isAlkaPlaying = false;
-                        setTimeout(() => saveAndShowRanking('alkagakiModal', "alkagaki", "알까기", 100), 300);
-                    } else if (myCount === 0) {
-                        cancelAnimationFrame(alkagakiAnim);
-                        isAlkaPlaying = false;
-                        setTimeout(() => saveAndShowRanking('alkagakiModal', "alkagaki", "알까기", 20), 300);
-                    }
-                }
-
-                document.getElementById('startAlkagaki')?.addEventListener('click', () => {
-                    if (isAlkaPlaying) return;
-                    cancelAnimationFrame(alkagakiAnim);
-                    initAlkagakiStones();
-                    isAlkaPlaying = true;
-                    alkagakiLoop();
-                });
+                };
             }
 
             // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
