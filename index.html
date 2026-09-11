@@ -423,7 +423,7 @@
         </div>
     </div>
 
-    <!-- ⚪ 알까기 게임 결과 모달창 (alert 대체) -->
+    <!-- ⚪ 알까기 게임 결과 모달창 -->
     <div id="alkaResultModal" class="modal hidden">
         <div class="modal-content" style="text-align: center; width: 380px;">
             <h2>🏆 알까기 대전 결과</h2>
@@ -650,7 +650,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (순수 동기식 마우스 해제 발사 보장) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -660,6 +660,8 @@
             let alkaDragCurrent = { x: 0, y: 0 };
             let alkaSelectedStoneIdx = null;
             let isAlkaAnimating = false;
+            let currentStonesCache = [];
+            let currentTurnCache = "";
 
             document.getElementById('alkaRandomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -773,7 +775,6 @@
                     if (data.status === 'ended') {
                         if (!document.getElementById('alkaGameModal').classList.contains('hidden')) {
                             closeModal('alkaGameModal');
-                            // 🌟 [요청 반영] alert창 대신 별도의 예쁜 결과 모달창으로 표시
                             document.getElementById('alkaResultText').innerText = `🏆 게임 종료!\n결과: ${data.resultMsg}`;
                             openModal('alkaResultModal');
                         }
@@ -788,6 +789,9 @@
 
                         if (alkaNickname === data.hostName) myRole = 'host';
                         else if (alkaNickname === data.guestName) myRole = 'guest';
+
+                        currentStonesCache = data.stones || [];
+                        currentTurnCache = data.currentTurn || "";
 
                         updateAlkaGameScreen(data);
                     }
@@ -814,12 +818,11 @@
                 const hostStones = stones.filter(s => s.type === 'host').length;
                 const guestStones = stones.filter(s => s.type === 'guest').length;
                 
-                // 🌟 [요청 반영] 검은돌(닉네임) : 개수 | 하얀돌(닉네임) : 개수 표기
                 const hostLabel = data.hostName ? `검은돌(${data.hostName})` : '검은돌(호스트)';
                 const guestLabel = data.guestName ? `하얀돌(${data.guestName})` : '하얀돌(게스트)';
                 statusBox.innerText = `${hostLabel}: ${hostStones}개 | ${guestLabel}: ${guestStones}개`;
 
-                if (!isAlkaAnimating) {
+                if (!isAlkaAnimating && !isAlkaDragging) {
                     renderAlkaBoardStatic(stones);
                 }
             }
@@ -848,57 +851,47 @@
                 });
             }
 
+            // 🌟 [안정화된 동기식 마우스 핸들러] 드래그 및 마우스 놓을 때 곧바로 발사
             if (alkaGameCanvas) {
                 alkaGameCanvas.onmousedown = (e) => {
-                    alkaRoomRef?.once('value', (snap) => {
-                        const data = snap.val();
-                        if (!data || data.currentTurn !== alkaNickname || isAlkaDragging || isAlkaAnimating) return;
+                    if (currentTurnCache !== alkaNickname || isAlkaDragging || isAlkaAnimating) return;
 
-                        const rect = alkaGameCanvas.getBoundingClientRect();
-                        const mouseX = e.clientX - rect.left;
-                        const mouseY = e.clientY - rect.top;
-                        const stones = data.stones || [];
+                    const rect = alkaGameCanvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
 
-                        const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
-                        if (myStoneIdx !== -1) {
-                            isAlkaDragging = true;
-                            alkaSelectedStoneIdx = myStoneIdx;
-                            alkaDragStart = { x: stones[myStoneIdx].x, y: stones[myStoneIdx].y };
-                            alkaDragCurrent = { x: mouseX, y: mouseY };
-                        }
-                    });
+                    const myStoneIdx = currentStonesCache.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
+                    if (myStoneIdx !== -1) {
+                        isAlkaDragging = true;
+                        alkaSelectedStoneIdx = myStoneIdx;
+                        alkaDragStart = { x: currentStonesCache[myStoneIdx].x, y: currentStonesCache[myStoneIdx].y };
+                        alkaDragCurrent = { x: mouseX, y: mouseY };
+                    }
                 };
 
                 alkaGameCanvas.onmousemove = (e) => {
                     if (!isAlkaDragging) return;
-                    alkaRoomRef?.once('value', (snap) => {
-                        const data = snap.val();
-                        if (!data) return;
-                        const rect = alkaGameCanvas.getBoundingClientRect();
-                        alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-                        renderAlkaBoardPreview(data.stones || []);
-                    });
+                    const rect = alkaGameCanvas.getBoundingClientRect();
+                    alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                    renderAlkaBoardPreview(currentStonesCache);
                 };
 
                 alkaGameCanvas.onmouseup = () => {
                     if (!isAlkaDragging) return;
                     isAlkaDragging = false;
 
-                    alkaRoomRef?.once('value', (snap) => {
-                        const data = snap.val();
-                        if (!data) return;
-                        const stones = data.stones || [];
-                        const s = stones[alkaSelectedStoneIdx];
+                    const s = currentStonesCache[alkaSelectedStoneIdx];
+                    if (s) {
+                        const dx = alkaDragStart.x - alkaDragCurrent.x;
+                        const dy = alkaDragStart.y - alkaDragCurrent.y;
+                        s.vx = dx * 0.18;
+                        s.vy = dy * 0.18;
 
-                        if (s) {
-                            const dx = alkaDragStart.x - alkaDragCurrent.x;
-                            const dy = alkaDragStart.y - alkaDragCurrent.y;
-                            s.vx = dx * 0.18;
-                            s.vy = dy * 0.18;
-
-                            runAlkaSmoothAnimation(stones, data);
-                        }
-                    });
+                        alkaRoomRef?.once('value', (snap) => {
+                            const data = snap.val() || {};
+                            runAlkaSmoothAnimation(currentStonesCache, data);
+                        });
+                    }
                 };
             }
 
