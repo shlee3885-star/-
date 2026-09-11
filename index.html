@@ -26,7 +26,7 @@
         h1 { color: #333; margin-bottom: 30px; }
 
         .button-group button {
-            display: block; width: 250px; margin: 15px auto; padding: 15px; font-size: 16px;
+            display: block; width: 250px; margin: 12px auto; padding: 14px; font-size: 15px;
             font-weight: bold; color: white; background-color: #4CAF50; border: none;
             border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
@@ -103,7 +103,7 @@
         }
         .ranking-item.top-rank { background-color: #fffde7; border-color: #ffd54f; }
 
-        #dinoCanvas, #brickCanvas, #flappyCanvas, #snakeCanvas {
+        #dinoCanvas, #brickCanvas, #flappyCanvas, #snakeCanvas, #alkagakiCanvas {
             background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
@@ -114,7 +114,7 @@
         .modal-content input, .modal-content select { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
         .modal-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
         .modal-buttons button { padding: 10px; width: 48%; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #submitSignup, #submitMatch, #startDino, #startBrick, #startFlappy, #startSnake, #startMemory { background-color: #2196F3; color: white; }
+        #submitSignup, #submitMatch, #startDino, #startBrick, #startFlappy, #startSnake, #startMemory, #startAlkagaki { background-color: #2196F3; color: white; }
         .close-btn { background-color: #f44336; color: white; }
         .hidden { display: none !important; }
     </style>
@@ -142,6 +142,7 @@
         </ul>
         <h2>미니 게임</h2>
         <ul>
+            <li><a href="#" id="sideAlkagaki">⚪ 알까기</a></li>
             <li><a href="#" id="sideDino">🦖 Dino Run</a></li>
             <li><a href="#" id="sideBrick">🧱 벽돌 깨기</a></li>
             <li><a href="#" id="sideFlappy">🐦 플래피 버드</a></li>
@@ -150,6 +151,7 @@
         </ul>
         <h2>🏆 랭킹 보기</h2>
         <ul>
+            <li><a href="#" id="rankAlkagaki">⚪ 알까기 랭킹</a></li>
             <li><a href="#" id="rankDino">🦖 Dino Run 랭킹</a></li>
             <li><a href="#" id="rankBrick">🧱 벽돌 깨기 랭킹</a></li>
             <li><a href="#" id="rankFlappy">🐦 플래피 버드 랭킹</a></li>
@@ -163,6 +165,7 @@
         <h1>🎮 미니게임 파티</h1>
         <div class="button-group">
             <button id="btnVegas" style="background-color: #ff9800;">🎲 라스베가스</button>
+            <button id="btnAlkagaki" style="background-color: #607d8b;">⚪ 알까기</button>
             <button id="btnDino">🦖 Dino Run</button>
             <button id="btnBrick">🧱 벽돌 깨기</button>
             <button id="btnFlappy">🐦 플래피 버드</button>
@@ -368,6 +371,20 @@
         </div>
     </div>
 
+    <!-- ⚪ 알까기 미니게임 모달창 -->
+    <div id="alkagakiModal" class="modal hidden">
+        <div class="modal-content dino-content" style="width: 380px;">
+            <h2>⚪ 알까기 게임</h2>
+            <p style="font-size: 12px; color: #666;">내 돌(검은돌)을 드래그해 당겨서 상대 돌(하얀돌)을 밀어내세요!</p>
+            <canvas id="alkagakiCanvas" width="340" height="340"></canvas>
+            <h3 id="alkagakiScore" style="margin: 5px 0;">남은 적 돌: 3개</h3>
+            <div class="modal-buttons" style="justify-content: center; gap: 10px;">
+                <button id="startAlkagaki">게임 시작</button>
+                <button class="close-btn" onclick="closeAlkagakiModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 미니게임 모달창들 -->
     <div id="dinoModal" class="modal hidden">
         <div class="modal-content dino-content">
@@ -452,7 +469,7 @@
             { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%84%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -548,6 +565,7 @@
 
             // --- 📌 메인 홈 화면 버튼 바인딩 ---
             document.getElementById('btnVegas')?.addEventListener('click', () => openModal('vegasLoginModal'));
+            document.getElementById('btnAlkagaki')?.addEventListener('click', () => openModal('alkagakiModal'));
             document.getElementById('btnDino')?.addEventListener('click', () => openModal('dinoModal'));
             document.getElementById('btnBrick')?.addEventListener('click', () => openModal('brickModal'));
             document.getElementById('btnFlappy')?.addEventListener('click', () => openModal('flappyModal'));
@@ -561,6 +579,7 @@
 
             const bindSide = (id, act) => document.getElementById(id)?.addEventListener('click', (e) => { e.preventDefault(); act(); sidebar?.classList.remove('open'); });
             bindSide('sideVegas', () => openModal('vegasLoginModal'));
+            bindSide('sideAlkagaki', () => openModal('alkagakiModal'));
             bindSide('sideSignup', () => openModal('signupModal'));
             bindSide('sideRandom', () => {
                 const g = games[Math.floor(Math.random() * games.length)];
@@ -575,11 +594,223 @@
             bindSide('sideSnake', () => openModal('snakeModal'));
             bindSide('sideMemory', () => openModal('memoryModal'));
 
+            bindSide('rankAlkagaki', () => fetchAndShowRanking("alkagaki", "알까기"));
             bindSide('rankDino', () => fetchAndShowRanking("dino", "Dino Run"));
             bindSide('rankBrick', () => fetchAndShowRanking("brick", "벽돌 깨기"));
             bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
+
+            // --- ⚪ 알카기 미니게임 구현 (힘 게이지 및 조준 화살표 포함) ---
+            const alkagakiCanvas = document.getElementById('alkagakiCanvas');
+            if (alkagakiCanvas) {
+                const aCtx = alkagakiCanvas.getContext('2d');
+                let alkagakiAnim, isAlkaPlaying = false;
+                let stones = [];
+                let isDragging = false;
+                let dragStart = { x: 0, y: 0 };
+                let dragCurrent = { x: 0, y: 0 };
+
+                window.closeAlkagakiModal = function() {
+                    closeModal('alkagakiModal');
+                    cancelAnimationFrame(alkagakiAnim);
+                    isAlkaPlaying = false;
+                };
+
+                function initAlkagakiStones() {
+                    stones = [
+                        { x: 170, y: 260, vx: 0, vy: 0, radius: 14, type: 'my', color: '#222' },
+                        { x: 170, y: 100, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' },
+                        { x: 110, y: 120, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' },
+                        { x: 230, y: 120, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' }
+                    ];
+                }
+
+                alkagakiCanvas.addEventListener('mousedown', (e) => {
+                    if (!isAlkaPlaying) return;
+                    const rect = alkagakiCanvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    // 내 돌 클릭 확인
+                    const myStone = stones.find(s => s.type === 'my');
+                    if (myStone) {
+                        const dist = Math.hypot(mouseX - myStone.x, mouseY - myStone.y);
+                        if (dist <= myStone.radius) {
+                            isDragging = true;
+                            dragStart = { x: myStone.x, y: myStone.y };
+                            dragCurrent = { x: mouseX, y: mouseY };
+                        }
+                    }
+                });
+
+                alkagakiCanvas.addEventListener('mousemove', (e) => {
+                    if (!isDragging || !isAlkaPlaying) return;
+                    const rect = alkagakiCanvas.getBoundingClientRect();
+                    dragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                });
+
+                alkagakiCanvas.addEventListener('mouseup', () => {
+                    if (!isDragging || !isAlkaPlaying) return;
+                    isDragging = false;
+                    const myStone = stones.find(s => s.type === 'my');
+                    if (myStone) {
+                        // 당긴 방향의 반대로 힘 부여 (최대치 제한)
+                        const dx = dragStart.x - dragCurrent.x;
+                        const dy = dragStart.y - dragCurrent.y;
+                        myStone.vx = dx * 0.18;
+                        myStone.vy = dy * 0.18;
+                    }
+                });
+
+                function alkagakiLoop() {
+                    alkagakiAnim = requestAnimationFrame(alkagakiLoop);
+                    aCtx.clearRect(0, 0, 340, 340);
+
+                    // 보드판 그리기
+                    aCtx.fillStyle = '#deb887';
+                    aCtx.fillRect(0, 0, 340, 340);
+                    aCtx.strokeStyle = '#8b4513';
+                    aCtx.lineWidth = 6;
+                    aCtx.strokeRect(3, 3, 334, 334);
+
+                    // 돌 물리 연산 및 충돌
+                    stones.forEach(s => {
+                        s.x += s.vx;
+                        s.y += s.vy;
+                        s.vx *= 0.96; // 마찰력
+                        s.vy *= 0.96;
+
+                        // 벽 충돌 (장외 아웃 판정)
+                        if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
+                            s.out = true;
+                        }
+                    });
+
+                    // 돌끼리 충돌 처리
+                    for (let i = 0; i < stones.length; i++) {
+                        for (let j = i + 1; j < stones.length; j++) {
+                            let s1 = stones[i];
+                            let s2 = stones[j];
+                            if (s1.out || s2.out) continue;
+
+                            let dx = s2.x - s1.x;
+                            let dy = s2.y - s1.y;
+                            let dist = Math.hypot(dx, dy);
+                            let minDist = s1.radius + s2.radius;
+
+                            if (dist < minDist) {
+                                let angle = Math.atan2(dy, dx);
+                                let overlap = minDist - dist;
+                                // 위치 겹침 해제
+                                s1.x -= Math.cos(angle) * overlap / 2;
+                                s1.y -= Math.sin(angle) * overlap / 2;
+                                s2.x += Math.cos(angle) * overlap / 2;
+                                s2.y += Math.sin(angle) * overlap / 2;
+
+                                // 속도 교환 (탄성 충돌)
+                                let tempVx = s1.vx;
+                                let tempVy = s1.vy;
+                                s1.vx = s2.vx * 0.9;
+                                s1.vy = s2.vy * 0.9;
+                                s2.vx = tempVx * 0.9;
+                                s2.vy = tempVy * 0.9;
+                            }
+                        }
+                    }
+
+                    // 아웃된 돌 제거
+                    stones = stones.filter(s => !s.out);
+
+                    // 돌 그리기
+                    stones.forEach(s => {
+                        aCtx.beginPath();
+                        aCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                        aCtx.fillStyle = s.color;
+                        aCtx.shadowColor = 'rgba(0,0,0,0.3)';
+                        aCtx.shadowBlur = 4;
+                        aCtx.fill();
+                        aCtx.closePath();
+                        aCtx.shadowBlur = 0;
+                        aCtx.strokeStyle = '#333';
+                        aCtx.lineWidth = 1.5;
+                        aCtx.stroke();
+                    });
+
+                    // 🌟 [시각화 구현] 드래그 중일 때 방향 조준 화살표 + 우측 힘(Power) 세로 게이지 표시
+                    if (isDragging) {
+                        const myStone = stones.find(s => s.type === 'my');
+                        if (myStone) {
+                            const dx = dragCurrent.x - dragStart.x;
+                            const dy = dragCurrent.y - dragStart.y;
+                            const pullDist = Math.hypot(dx, dy); // 당긴 거리 (힘)
+
+                            // 1. 방향 조준 화살표 (돌 중심에서 당기는 반대 방향으로 뻗어나감)
+                            const angle = Math.atan2(dy, dx);
+                            const arrowLength = Math.min(pullDist * 1.5, 120);
+
+                            aCtx.beginPath();
+                            aCtx.moveTo(myStone.x, myStone.y);
+                            aCtx.lineTo(myStone.x + Math.cos(angle) * arrowLength, myStone.y + Math.sin(angle) * arrowLength);
+                            aCtx.strokeStyle = '#ff3b30';
+                            aCtx.lineWidth = 4;
+                            aCtx.stroke();
+                            aCtx.closePath();
+
+                            // 화살표 머리 삼각형
+                            const tipX = myStone.x + Math.cos(angle) * arrowLength;
+                            const tipY = myStone.y + Math.sin(angle) * arrowLength;
+                            aCtx.beginPath();
+                            aCtx.moveTo(tipX, tipY);
+                            aCtx.lineTo(tipX - 10 * Math.cos(angle - Math.PI/6), tipY - 10 * Math.sin(angle - Math.PI/6));
+                            aCtx.lineTo(tipX - 10 * Math.cos(angle + Math.PI/6), tipY - 10 * Math.sin(angle + Math.PI/6));
+                            aCtx.fillStyle = '#ff3b30';
+                            aCtx.fill();
+                            aCtx.closePath();
+
+                            // 2. 우측 세로 힘(Power) 게이지 바
+                            const gaugeHeight = Math.min(pullDist * 1.2, 150);
+                            aCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                            aCtx.fillRect(315, 95, 14, 152); // 게이지 배경 틀
+
+                            // 힘 크기에 따른 그라데이션 색상 (초록 -> 주황 -> 빨강)
+                            let gaugeColor = '#4CD964';
+                            if (gaugeHeight > 50) gaugeColor = '#FF9500';
+                            if (gaugeHeight > 100) gaugeColor = '#FF3B30';
+
+                            aCtx.fillStyle = gaugeColor;
+                            aCtx.fillRect(317, 245 - gaugeHeight, 10, gaugeHeight); // 채워지는 힘 바
+
+                            aCtx.fillStyle = '#333';
+                            aCtx.font = 'bold 10px sans-serif';
+                            aCtx.fillText('POWER', 305, 88);
+                        }
+                    }
+
+                    // 승리/패배 판정
+                    const enemyCount = stones.filter(s => s.type === 'enemy').length;
+                    const hasMyStone = stones.some(s => s.type === 'my');
+                    document.getElementById('alkagakiScore').innerText = `남은 적 돌: ${enemyCount}개`;
+
+                    if (enemyCount === 0) {
+                        cancelAnimationFrame(alkagakiAnim);
+                        isAlkaPlaying = false;
+                        setTimeout(() => saveAndShowRanking('alkagakiModal', "alkagaki", "알까기", 100), 300);
+                    } else if (!hasMyStone) {
+                        cancelAnimationFrame(alkagakiAnim);
+                        isAlkaPlaying = false;
+                        alert("패배했습니다! 다시 도전해보세요.");
+                    }
+                }
+
+                document.getElementById('startAlkagaki')?.addEventListener('click', () => {
+                    if (isAlkaPlaying) return;
+                    cancelAnimationFrame(alkagakiAnim);
+                    initAlkagakiStones();
+                    isAlkaPlaying = true;
+                    alkagakiLoop();
+                });
+            }
 
             // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
             const chatMessages = document.getElementById('chatMessages');
@@ -616,7 +847,6 @@
             });
 
             document.getElementById('joinVegasRoomBtn')?.addEventListener('click', async () => {
-                // 🌟 소문자로 입력해도 자동으로 대문자로 변환되도록 처리
                 const roomCode = document.getElementById('vegasRoomCode').value.trim().toUpperCase();
                 const name = document.getElementById('vegasNickname').value.trim();
                 if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
