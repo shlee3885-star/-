@@ -650,7 +650,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (안정적인 마우스 이벤트 핸들러) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (멈춤 방지 안전 장치 추가) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -851,7 +851,6 @@
                 });
             }
 
-            // 🌟 [전역 윈도우 이벤트 리스너 적용] 캔버스 밖으로 마우스가 나가도 입력이 끊기지 않도록 보완
             if (alkaGameCanvas) {
                 alkaGameCanvas.onmousedown = (e) => {
                     if (currentTurnCache !== alkaNickname || isAlkaDragging || isAlkaAnimating) return;
@@ -897,9 +896,11 @@
 
             function runAlkaSmoothAnimation(stones, data) {
                 isAlkaAnimating = true;
+                let frameCount = 0; // 🌟 [멈춤 방지 안전 장치] 최대 프레임 초과 시 강제 종료
 
                 function animateFrame() {
                     let moving = false;
+                    frameCount++;
 
                     stones.forEach(s => {
                         s.x += s.vx;
@@ -907,7 +908,7 @@
                         s.vx *= 0.95; 
                         s.vy *= 0.95;
 
-                        if (Math.abs(s.vx) > 0.1 || Math.abs(s.vy) > 0.1) {
+                        if (Math.abs(s.vx) > 0.08 || Math.abs(s.vy) > 0.08) {
                             moving = true;
                         } else {
                             s.vx = 0; s.vy = 0;
@@ -952,7 +953,8 @@
                     stones = stones.filter(s => !s.out);
                     renderAlkaBoardStatic(stones);
 
-                    if (moving) {
+                    // 🌟 120프레임(약 2초) 동안 움직임이 안 멈추거나 정상 종료 조건 만족 시 턴 넘김 보장
+                    if (moving && frameCount < 120) {
                         requestAnimationFrame(animateFrame);
                     } else {
                         isAlkaAnimating = false;
