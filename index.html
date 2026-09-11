@@ -650,7 +650,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (멈춤 방지 안전 장치 추가) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (방 입장 시 오래된 유령 데이터 자동 초기화 청소) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -679,21 +679,20 @@
 
                 const roomRef = rtdb.ref(`alkagaki_rooms/${roomCode}`);
                 const snap = await roomRef.once('value');
-                const roomData = snap.val();
+                const roomData = snap.val() || {};
 
-                if (roomData && roomData.status === 'playing') {
+                if (roomData.status === 'playing') {
                     return alert("이미 게임이 진행 중인 방입니다!");
                 }
 
-                const players = roomData ? (roomData.players || {}) : {};
+                const players = roomData.players || {};
                 const playerKeys = Object.keys(players);
 
-                if (playerKeys.length >= 2 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 2명)! 다른 방 코드를 사용해주세요.");
-                }
-
-                if (playerKeys.length === 0) {
+                // 🌟 [유령 방 청소 로직] 방에 게임이 끝났거나(ended) 아무도 없는 상태면 기존 잔여 데이터를 완전히 날리고 새로 시작
+                if (roomData.status === 'ended' || playerKeys.length === 0) {
                     await roomRef.remove();
+                } else if (playerKeys.length >= 2 && !players[name]) {
+                    return alert("방 인원이 가득 찼습니다 (최대 2명)! 다른 방 코드를 사용해주세요.");
                 }
 
                 alkaRoomCode = roomCode;
@@ -896,7 +895,7 @@
 
             function runAlkaSmoothAnimation(stones, data) {
                 isAlkaAnimating = true;
-                let frameCount = 0; // 🌟 [멈춤 방지 안전 장치] 최대 프레임 초과 시 강제 종료
+                let frameCount = 0;
 
                 function animateFrame() {
                     let moving = false;
@@ -953,7 +952,6 @@
                     stones = stones.filter(s => !s.out);
                     renderAlkaBoardStatic(stones);
 
-                    // 🌟 120프레임(약 2초) 동안 움직임이 안 멈추거나 정상 종료 조건 만족 시 턴 넘김 보장
                     if (moving && frameCount < 120) {
                         requestAnimationFrame(animateFrame);
                     } else {
