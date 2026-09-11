@@ -639,7 +639,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (돌 자유 선택 및 새총 원리 반동 적용) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (대기실 명단 실시간 렌더링 포함) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -792,7 +792,6 @@
                 if (!alkaCtx || !alkaGameCanvas) return;
                 alkaCtx.clearRect(0, 0, 340, 340);
 
-                // 보드판
                 alkaCtx.fillStyle = '#deb887';
                 alkaCtx.fillRect(0, 0, 340, 340);
                 alkaCtx.strokeStyle = '#8b4513';
@@ -813,14 +812,13 @@
                     alkaCtx.stroke();
                 });
 
-                // 마우스 이벤트 (돌 자유 선택 및 새총 원리)
                 alkaGameCanvas.onmousedown = (e) => {
                     if (!isMyTurn || isAlkaDragging) return;
                     const rect = alkaGameCanvas.getBoundingClientRect();
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
-                    // 🌟 [돌 자유 선택] 내 돌 중 마우스 클릭 위치에 있는 어떤 돌이든 선택 가능
+                    // 🌟 [돌 자유 선택] 내 돌 중 어떤 것이든 클릭해서 선택 가능
                     const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
                     if (myStoneIdx !== -1) {
                         isAlkaDragging = true;
@@ -843,7 +841,7 @@
 
                     const s = stones[alkaSelectedStoneIdx];
                     if (s) {
-                        // 🌟 [새총 원리] 뒤로 당긴 방향으로 발사
+                        // 🌟 [새총 원리] 뒤로 당기면 앞으로 발사
                         const dx = alkaDragStart.x - alkaDragCurrent.x;
                         const dy = alkaDragStart.y - alkaDragCurrent.y;
                         s.vx = dx * 0.18;
