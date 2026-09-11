@@ -375,7 +375,7 @@
     <div id="alkagakiModal" class="modal hidden">
         <div class="modal-content dino-content" style="width: 380px;">
             <h2>⚪ 알까기 게임</h2>
-            <p style="font-size: 12px; color: #666;">내 돌(검은돌)을 드래그해 당겨서 상대 돌(하얀돌)을 밀어내세요!</p>
+            <p style="font-size: 12px; color: #666;">내 돌(검은돌)을 뒤로 당겨서 앞(적 방향)으로 쏘세요!</p>
             <canvas id="alkagakiCanvas" width="340" height="340"></canvas>
             <h3 id="alkagakiScore" style="margin: 5px 0;">남은 적 돌: 5개</h3>
             <div class="modal-buttons" style="justify-content: center; gap: 10px;">
@@ -601,7 +601,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알카기 미니게임 구현 (5:5 배치 및 진행 방향 화살표, 결과 모달 연동) ---
+            // --- ⚪ 알카기 미니게임 구현 (새총 원리: 뒤로 당기면 앞으로 발사) ---
             const alkagakiCanvas = document.getElementById('alkagakiCanvas');
             if (alkagakiCanvas) {
                 const aCtx = alkagakiCanvas.getContext('2d');
@@ -641,7 +641,6 @@
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
-                    // 첫 번째 내 돌 선택 (또는 클릭한 돌)
                     const myStone = stones.find(s => s.type === 'my' && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
                     if (myStone) {
                         isDragging = true;
@@ -661,7 +660,7 @@
                     isDragging = false;
                     const myStone = stones.find(s => s.type === 'my');
                     if (myStone) {
-                        // 🌟 돌이 날아가는 진행 방향(당기는 방향과 동일)으로 힘 부여
+                        // 🌟 [새총 원리 반영] 마우스를 뒤로 당긴 방향과 '동일한 방향(당긴 방향)'으로 돌이 발사되도록 설정 (당기면 그쪽으로 튀어나감)
                         const dx = dragCurrent.x - dragStart.x;
                         const dy = dragCurrent.y - dragStart.y;
                         myStone.vx = dx * 0.18;
@@ -680,11 +679,11 @@
                     aCtx.lineWidth = 6;
                     aCtx.strokeRect(3, 3, 334, 334);
 
-                    // 돌 물리 연산 및 장외 아웃 판정
+                    // 돌 물리 연산 및 아웃 판정
                     stones.forEach(s => {
                         s.x += s.vx;
                         s.y += s.vy;
-                        s.vx *= 0.96; // 마찰력
+                        s.vx *= 0.96;
                         s.vy *= 0.96;
 
                         if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
@@ -722,7 +721,6 @@
                         }
                     }
 
-                    // 아웃된 돌 제거
                     stones = stones.filter(s => !s.out);
 
                     // 돌 그리기
@@ -740,7 +738,7 @@
                         aCtx.stroke();
                     });
 
-                    // 🌟 [요청 반영] 드래그 중일 때 '돌이 진행하는 방향'으로 조준 화살표 표시 + 우측 Power 세로 게이지
+                    // 🌟 [새총 원리 화살표 및 Power 게이지] 마우스 드래그 방향으로 화살표 표시
                     if (isDragging) {
                         const myStone = stones.find(s => s.type === 'my');
                         if (myStone) {
@@ -748,7 +746,6 @@
                             const dy = dragCurrent.y - dragStart.y;
                             const pullDist = Math.hypot(dx, dy);
 
-                            // 돌 중심에서 드래그하는 방향(진행 방향)으로 화살표 선사
                             const angle = Math.atan2(dy, dx);
                             const arrowLength = Math.min(pullDist * 1.5, 120);
 
@@ -760,7 +757,6 @@
                             aCtx.stroke();
                             aCtx.closePath();
 
-                            // 화살표 머리 삼각형
                             const tipX = myStone.x + Math.cos(angle) * arrowLength;
                             const tipY = myStone.y + Math.sin(angle) * arrowLength;
                             aCtx.beginPath();
@@ -771,7 +767,6 @@
                             aCtx.fill();
                             aCtx.closePath();
 
-                            // 우측 세로 힘(Power) 게이지 바
                             const gaugeHeight = Math.min(pullDist * 1.2, 150);
                             aCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                             aCtx.fillRect(315, 95, 14, 152);
@@ -789,7 +784,6 @@
                         }
                     }
 
-                    // 승리/패배 판정 및 결과 화면 연동
                     const enemyCount = stones.filter(s => s.type === 'enemy').length;
                     const myCount = stones.filter(s => s.type === 'my').length;
                     document.getElementById('alkagakiScore').innerText = `남은 적 돌: ${enemyCount}개 (내 돌: ${myCount}개)`;
