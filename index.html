@@ -507,7 +507,7 @@
             { title: "할리갈리", link: "https://namu.wiki/w/%ED%95%A0%EA%B0%88%EB%A6%AC" },
             { title: "뱅!", link: "https://namu.wiki/w/%EB%B1%85!?from=%EB%B1%85%20%EB%B3%B4%EB%93%9C%EA%B2%8C%EC%9E%84" },
             { title: "카탄", link: "https://namu.wiki/w/%EC%B9%B4%ED%83%84" },
-            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%B4%EC%8A%A4" },
+            { title: "아임 더 보스", link: "https://namu.wiki/w/%EC%95%84%EC%9E%84%20%EB%8D%94%20%EB%B3%EC%8A%A4" },
             { title: "루미큐브", link: "https://namu.wiki/w/%EB%A3%A8%EB%AF%B8%ED%81%90%EB%B8%8C" }
         ];
 
@@ -639,7 +639,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (새총 원리 완벽 적용) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (돌 자유 선택 및 새총 원리 반동 적용) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -773,7 +773,7 @@
                 const isMyTurn = data.currentTurn === alkaNickname;
 
                 if (isMyTurn) {
-                    turnBox.innerText = "🔥 [ 내 차례입니다! 돌을 당겨서 발사하세요 ]";
+                    turnBox.innerText = "🔥 [ 내 차례입니다! 아무 돌이나 당겨서 발사하세요 ]";
                     turnBox.style.backgroundColor = "#e8f5e9";
                 } else {
                     turnBox.innerText = `⏳ 상대방(${data.currentTurn})의 턴입니다...`;
@@ -813,13 +813,14 @@
                     alkaCtx.stroke();
                 });
 
-                // 🌟 [새총 원리 정밀 수정] 마우스를 뒤로 당기면 정반대 방향(앞쪽)으로 화살표와 발사 벡터 작용
+                // 마우스 이벤트 (돌 자유 선택 및 새총 원리)
                 alkaGameCanvas.onmousedown = (e) => {
                     if (!isMyTurn || isAlkaDragging) return;
                     const rect = alkaGameCanvas.getBoundingClientRect();
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
+                    // 🌟 [돌 자유 선택] 내 돌 중 마우스 클릭 위치에 있는 어떤 돌이든 선택 가능
                     const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
                     if (myStoneIdx !== -1) {
                         isAlkaDragging = true;
@@ -833,8 +834,6 @@
                     if (!isAlkaDragging || !isMyTurn) return;
                     const rect = alkaGameCanvas.getBoundingClientRect();
                     alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-
-                    // 드래그 중일 때 실시간 조준 화살표(새총 반대 방향) 렌더링 피드백
                     renderAlkaBoardPreview(stones);
                 };
 
@@ -844,14 +843,13 @@
 
                     const s = stones[alkaSelectedStoneIdx];
                     if (s) {
-                        // 🌟 [새총 원리] 뒤로 당긴 방향(dragStart - dragCurrent)으로 발사 벡터 부여
+                        // 🌟 [새총 원리] 뒤로 당긴 방향으로 발사
                         const dx = alkaDragStart.x - alkaDragCurrent.x;
                         const dy = alkaDragStart.y - alkaDragCurrent.y;
                         s.vx = dx * 0.18;
                         s.vy = dy * 0.18;
 
-                        s.x += s.vx;
-                        s.y += s.vy;
+                        simulatePhysics(stones);
 
                         const nextTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
                         await alkaRoomRef.update({
@@ -862,7 +860,54 @@
                 };
             }
 
-            // 드래그 조준 시 새총 방향(뒤로 당기면 앞으로 조준) 화살표 실시간 미리보기 렌더링
+            function simulatePhysics(stones) {
+                for (let step = 0; step < 30; step++) {
+                    stones.forEach(s => {
+                        s.x += s.vx;
+                        s.y += s.vy;
+                        s.vx *= 0.95; 
+                        s.vy *= 0.95;
+
+                        if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
+                            s.out = true;
+                        }
+                    });
+
+                    for (let i = 0; i < stones.length; i++) {
+                        for (let j = i + 1; j < stones.length; j++) {
+                            let s1 = stones[i];
+                            let s2 = stones[j];
+                            if (s1.out || s2.out) continue;
+
+                            let dx = s2.x - s1.x;
+                            let dy = s2.y - s1.y;
+                            let dist = Math.hypot(dx, dy);
+                            let minDist = s1.radius + s2.radius;
+
+                            if (dist < minDist) {
+                                let angle = Math.atan2(dy, dx);
+                                let overlap = minDist - dist;
+                                
+                                s1.x -= Math.cos(angle) * overlap / 2;
+                                s1.y -= Math.sin(angle) * overlap / 2;
+                                s2.x += Math.cos(angle) * overlap / 2;
+                                s2.y += Math.sin(angle) * overlap / 2;
+
+                                let tempVx = s1.vx;
+                                let tempVy = s1.vy;
+                                s1.vx = s2.vx * 0.85;
+                                s1.vy = s2.vy * 0.85;
+                                s2.vx = tempVx * 0.85;
+                                s2.vy = tempVy * 0.85;
+                            }
+                        }
+                    }
+                }
+                let finalStones = stones.filter(s => !s.out);
+                stones.length = 0;
+                stones.push(...finalStones);
+            }
+
             function renderAlkaBoardPreview(stones) {
                 if (!alkaCtx) return;
                 alkaCtx.clearRect(0, 0, 340, 340);
@@ -885,7 +930,7 @@
 
                 if (isAlkaDragging && alkaSelectedStoneIdx !== null) {
                     const s = stones[alkaSelectedStoneIdx];
-                    const dx = alkaDragStart.x - alkaDragCurrent.x; // 새총 발사 방향 (뒤로 당기면 앞을 향함)
+                    const dx = alkaDragStart.x - alkaDragCurrent.x; 
                     const dy = alkaDragStart.y - alkaDragCurrent.y;
                     const pullDist = Math.hypot(dx, dy);
                     const angle = Math.atan2(dy, dx);
