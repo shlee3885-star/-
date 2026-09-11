@@ -639,7 +639,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (돌 자유선택, 새총원리 발사, 반동, 승무패 판정) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (자유선택, 새총원리 즉시발사 애니메이션 루프, 닉네임 표기) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -648,6 +648,7 @@
             let alkaDragStart = { x: 0, y: 0 };
             let alkaDragCurrent = { x: 0, y: 0 };
             let alkaSelectedStoneIdx = null;
+            let isAlkaAnimating = false;
 
             document.getElementById('alkaRandomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -799,15 +800,20 @@
                 const stones = data.stones || [];
                 const hostStones = stones.filter(s => s.type === 'host').length;
                 const guestStones = stones.filter(s => s.type === 'guest').length;
-                statusBox.innerText = `검은돌(호스트): ${hostStones}개 | 하얀돌(게스트): ${guestStones}개`;
+                
+                // 🌟 [요청 반영] 검은돌(호스트닉네임) : 5개 | 하얀돌(게스트닉네임) : 5개 표기
+                const hostLabel = data.hostName ? `검은돌(${data.hostName})` : '검은돌(호스트)';
+                const guestLabel = data.guestName ? `하얀돌(${data.guestName})` : '하얀돌(게스트)';
+                statusBox.innerText = `${hostLabel}: ${hostStones}개 | ${guestLabel}: ${guestStones}개`;
 
-                renderAlkaBoard(stones, isMyTurn, data);
+                if (!isAlkaAnimating) {
+                    renderAlkaBoardStatic(stones);
+                }
             }
 
-            function renderAlkaBoard(stones, isMyTurn, data) {
+            function renderAlkaBoardStatic(stones) {
                 if (!alkaCtx || !alkaGameCanvas) return;
                 alkaCtx.clearRect(0, 0, 340, 340);
-
                 alkaCtx.fillStyle = '#deb887';
                 alkaCtx.fillRect(0, 0, 340, 340);
                 alkaCtx.strokeStyle = '#8b4513';
@@ -827,82 +833,89 @@
                     alkaCtx.lineWidth = 1.5;
                     alkaCtx.stroke();
                 });
+            }
 
+            // 알까기 캔버스 마우스 이벤트 바인딩 (새총 원리 & 놓는 순간 곧바로 발사 및 애니메이션)
+            if (alkaGameCanvas) {
                 alkaGameCanvas.onmousedown = (e) => {
-                    if (!isMyTurn || isAlkaDragging) return;
-                    const rect = alkaGameCanvas.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
+                    alkaRoomRef?.once('value', (snap) => {
+                        const data = snap.val();
+                        if (!data || data.currentTurn !== alkaNickname || isAlkaDragging || isAlkaAnimating) return;
 
-                    // 🌟 [돌 자유 선택] 내 돌 중 어떤 것이든 클릭해서 선택 가능
-                    const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
-                    if (myStoneIdx !== -1) {
-                        isAlkaDragging = true;
-                        alkaSelectedStoneIdx = myStoneIdx;
-                        alkaDragStart = { x: stones[myStoneIdx].x, y: stones[myStoneIdx].y };
-                        alkaDragCurrent = { x: mouseX, y: mouseY };
-                    }
+                        const rect = alkaGameCanvas.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
+                        const stones = data.stones || [];
+
+                        const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
+                        if (myStoneIdx !== -1) {
+                            isAlkaDragging = true;
+                            alkaSelectedStoneIdx = myStoneIdx;
+                            alkaDragStart = { x: stones[myStoneIdx].x, y: stones[myStoneIdx].y };
+                            alkaDragCurrent = { x: mouseX, y: mouseY };
+                        }
+                    });
                 };
 
                 alkaGameCanvas.onmousemove = (e) => {
-                    if (!isAlkaDragging || !isMyTurn) return;
-                    const rect = alkaGameCanvas.getBoundingClientRect();
-                    alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-                    renderAlkaBoardPreview(stones);
+                    if (!isAlkaDragging) return;
+                    alkaRoomRef?.once('value', (snap) => {
+                        const data = snap.val();
+                        if (!data) return;
+                        const rect = alkaGameCanvas.getBoundingClientRect();
+                        alkaDragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                        renderAlkaBoardPreview(data.stones || []);
+                    });
                 };
 
-                alkaGameCanvas.onmouseup = async () => {
-                    if (!isAlkaDragging || !isMyTurn) return;
+                alkaGameCanvas.onmouseup = () => {
+                    if (!isAlkaDragging) return;
                     isAlkaDragging = false;
 
-                    const s = stones[alkaSelectedStoneIdx];
-                    if (s) {
-                        // 🌟 [새총 원리] 뒤로 당긴 방향으로 발사
-                        const dx = alkaDragStart.x - alkaDragCurrent.x;
-                        const dy = alkaDragStart.y - alkaDragCurrent.y;
-                        s.vx = dx * 0.18;
-                        s.vy = dy * 0.18;
+                    alkaRoomRef?.once('value', (snap) => {
+                        const data = snap.val();
+                        if (!data) return;
+                        const stones = data.stones || [];
+                        const s = stones[alkaSelectedStoneIdx];
 
-                        simulatePhysics(stones);
+                        if (s) {
+                            // 🌟 [새총 원리] 뒤로 당긴 방향(dragStart - dragCurrent)으로 발사 벡터 부여
+                            const dx = alkaDragStart.x - alkaDragCurrent.x;
+                            const dy = alkaDragStart.y - alkaDragCurrent.y;
+                            s.vx = dx * 0.18;
+                            s.vy = dy * 0.18;
 
-                        // 🌟 [승무패 판정] 한쪽 돌이 0개가 되었는지 검사
-                        const hostLeft = stones.filter(st => st.type === 'host').length;
-                        const guestLeft = stones.filter(st => st.type === 'guest').length;
-
-                        let statusUpdate = { stones: stones };
-
-                        if (hostLeft === 0 && guestLeft === 0) {
-                            statusUpdate.status = 'ended';
-                            statusUpdate.resultMsg = '무승부! (양측 돌 모두 소멸)';
-                        } else if (hostLeft === 0) {
-                            statusUpdate.status = 'ended';
-                            statusUpdate.resultMsg = `${data.guestName} (하얀돌) 승리!`;
-                        } else if (guestLeft === 0) {
-                            statusUpdate.status = 'ended';
-                            statusUpdate.resultMsg = `${data.hostName} (검은돌) 승리!`;
-                        } else {
-                            statusUpdate.currentTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
+                            // 🌟 [부드러운 실시간 애니메이션 루프 실행] 마우스 뗄 때 곧바로 구르기 시작
+                            runAlkaSmoothAnimation(stones, data);
                         }
-
-                        await alkaRoomRef.update(statusUpdate);
-                    }
+                    });
                 };
             }
 
-            function simulatePhysics(stones) {
-                for (let step = 0; step < 30; step++) {
+            function runAlkaSmoothAnimation(stones, data) {
+                isAlkaAnimating = true;
+
+                function animateFrame() {
+                    let moving = false;
+
                     stones.forEach(s => {
                         s.x += s.vx;
                         s.y += s.vy;
                         s.vx *= 0.95; 
                         s.vy *= 0.95;
 
+                        if (Math.abs(s.vx) > 0.1 || Math.abs(s.vy) > 0.1) {
+                            moving = true;
+                        } else {
+                            s.vx = 0; s.vy = 0;
+                        }
+
                         if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
                             s.out = true;
                         }
                     });
 
-                    // 🌟 [탄성 충돌 반동] 부딪힐 때 내 돌도 반동으로 튕겨 나감
+                    // 🌟 [탄성 충돌 반동] 부딪힐 때 양쪽 다 튕겨 나감
                     for (let i = 0; i < stones.length; i++) {
                         for (let j = i + 1; j < stones.length; j++) {
                             let s1 = stones[i];
@@ -915,6 +928,7 @@
                             let minDist = s1.radius + s2.radius;
 
                             if (dist < minDist) {
+                                moving = true;
                                 let angle = Math.atan2(dy, dx);
                                 let overlap = minDist - dist;
                                 
@@ -932,10 +946,41 @@
                             }
                         }
                     }
+
+                    stones = stones.filter(s => !s.out);
+                    renderAlkaBoardStatic(stones);
+
+                    if (moving) {
+                        requestAnimationFrame(animateFrame);
+                    } else {
+                        isAlkaAnimating = false;
+                        finalizeAlkaTurn(stones, data);
+                    }
                 }
-                let finalStones = stones.filter(s => !s.out);
-                stones.length = 0;
-                stones.push(...finalStones);
+
+                requestAnimationFrame(animateFrame);
+            }
+
+            async function finalizeAlkaTurn(stones, data) {
+                const hostLeft = stones.filter(st => st.type === 'host').length;
+                const guestLeft = stones.filter(st => st.type === 'guest').length;
+
+                let statusUpdate = { stones: stones };
+
+                if (hostLeft === 0 && guestLeft === 0) {
+                    statusUpdate.status = 'ended';
+                    statusUpdate.resultMsg = '무승부! (양측 돌 모두 소멸)';
+                } else if (hostLeft === 0) {
+                    statusUpdate.status = 'ended';
+                    statusUpdate.resultMsg = `${data.guestName} (하얀돌) 승리!`;
+                } else if (guestLeft === 0) {
+                    statusUpdate.status = 'ended';
+                    statusUpdate.resultMsg = `${data.hostName} (검은돌) 승리!`;
+                } else {
+                    statusUpdate.currentTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
+                }
+
+                await alkaRoomRef.update(statusUpdate);
             }
 
             function renderAlkaBoardPreview(stones) {
