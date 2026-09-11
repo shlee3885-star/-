@@ -377,7 +377,7 @@
             <h2>⚪ 알까기 온라인 대전</h2>
             <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 친구와 대결하세요! (최대 2명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                <input type="text" id="alkaRoomCode" placeholder="방 코드 입력 (예: ABC123)" style="flex: 1;">
+                <input type="text" id="alkaRoomCode" placeholder="방 코드 입력" style="flex: 1;">
                 <button id="alkaRandomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="alkaNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
@@ -639,7 +639,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (방 입장 시 유령 데이터 및 중복 제거 청소 로직 적용) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (돌 자유선택, 새총원리 발사, 반동, 승무패 판정) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -674,12 +674,10 @@
                 const players = roomData ? (roomData.players || {}) : {};
                 const playerKeys = Object.keys(players);
 
-                // 🌟 [핵심 개선] 대기실 인원이 2명이 꽉 찼는데 내가 그 방에 없는 사람이면 입장 차단 (유령 방 충돌 방지)
                 if (playerKeys.length >= 2 && !players[name]) {
                     return alert("방 인원이 가득 찼습니다 (최대 2명)! 다른 방 코드를 사용해주세요.");
                 }
 
-                // 만약 방에 아무도 없거나 새로 파는 방이라면 기존 데이터 찌꺼기 깔끔히 초기화
                 if (playerKeys.length === 0) {
                     await roomRef.remove();
                 }
@@ -760,6 +758,14 @@
                     });
                     document.getElementById('alkaPlayersList').innerHTML = listHtml;
 
+                    if (data.status === 'ended') {
+                        if (!document.getElementById('alkaGameModal').classList.contains('hidden')) {
+                            closeModal('alkaGameModal');
+                            alert(`🏆 게임 종료! 결과: ${data.resultMsg}`);
+                        }
+                        return;
+                    }
+
                     if (data.status === 'playing') {
                         if (!document.getElementById('alkaLobbyModal').classList.contains('hidden')) {
                             closeModal('alkaLobbyModal');
@@ -828,6 +834,7 @@
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
+                    // 🌟 [돌 자유 선택] 내 돌 중 어떤 것이든 클릭해서 선택 가능
                     const myStoneIdx = stones.findIndex(s => s.type === myRole && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
                     if (myStoneIdx !== -1) {
                         isAlkaDragging = true;
@@ -850,6 +857,7 @@
 
                     const s = stones[alkaSelectedStoneIdx];
                     if (s) {
+                        // 🌟 [새총 원리] 뒤로 당긴 방향으로 발사
                         const dx = alkaDragStart.x - alkaDragCurrent.x;
                         const dy = alkaDragStart.y - alkaDragCurrent.y;
                         s.vx = dx * 0.18;
@@ -857,11 +865,26 @@
 
                         simulatePhysics(stones);
 
-                        const nextTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
-                        await alkaRoomRef.update({
-                            stones: stones,
-                            currentTurn: nextTurn
-                        });
+                        // 🌟 [승무패 판정] 한쪽 돌이 0개가 되었는지 검사
+                        const hostLeft = stones.filter(st => st.type === 'host').length;
+                        const guestLeft = stones.filter(st => st.type === 'guest').length;
+
+                        let statusUpdate = { stones: stones };
+
+                        if (hostLeft === 0 && guestLeft === 0) {
+                            statusUpdate.status = 'ended';
+                            statusUpdate.resultMsg = '무승부! (양측 돌 모두 소멸)';
+                        } else if (hostLeft === 0) {
+                            statusUpdate.status = 'ended';
+                            statusUpdate.resultMsg = `${data.guestName} (하얀돌) 승리!`;
+                        } else if (guestLeft === 0) {
+                            statusUpdate.status = 'ended';
+                            statusUpdate.resultMsg = `${data.hostName} (검은돌) 승리!`;
+                        } else {
+                            statusUpdate.currentTurn = (data.currentTurn === data.hostName) ? data.guestName : data.hostName;
+                        }
+
+                        await alkaRoomRef.update(statusUpdate);
                     }
                 };
             }
@@ -879,6 +902,7 @@
                         }
                     });
 
+                    // 🌟 [탄성 충돌 반동] 부딪힐 때 내 돌도 반동으로 튕겨 나감
                     for (let i = 0; i < stones.length; i++) {
                         for (let j = i + 1; j < stones.length; j++) {
                             let s1 = stones[i];
