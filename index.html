@@ -377,7 +377,7 @@
             <h2>⚪ 알까기 게임</h2>
             <p style="font-size: 12px; color: #666;">내 돌(검은돌)을 드래그해 당겨서 상대 돌(하얀돌)을 밀어내세요!</p>
             <canvas id="alkagakiCanvas" width="340" height="340"></canvas>
-            <h3 id="alkagakiScore" style="margin: 5px 0;">남은 적 돌: 3개</h3>
+            <h3 id="alkagakiScore" style="margin: 5px 0;">남은 적 돌: 5개</h3>
             <div class="modal-buttons" style="justify-content: center; gap: 10px;">
                 <button id="startAlkagaki">게임 시작</button>
                 <button class="close-btn" onclick="closeAlkagakiModal()">닫기</button>
@@ -601,7 +601,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알카기 미니게임 구현 (힘 게이지 및 조준 화살표 포함) ---
+            // --- ⚪ 알카기 미니게임 구현 (5:5 배치 및 진행 방향 화살표, 결과 모달 연동) ---
             const alkagakiCanvas = document.getElementById('alkagakiCanvas');
             if (alkagakiCanvas) {
                 const aCtx = alkagakiCanvas.getContext('2d');
@@ -619,10 +619,19 @@
 
                 function initAlkagakiStones() {
                     stones = [
-                        { x: 170, y: 260, vx: 0, vy: 0, radius: 14, type: 'my', color: '#222' },
-                        { x: 170, y: 100, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' },
-                        { x: 110, y: 120, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' },
-                        { x: 230, y: 120, vx: 0, vy: 0, radius: 14, type: 'enemy', color: '#fff' }
+                        // 내 돌 5개 (아래쪽 배치)
+                        { x: 170, y: 280, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+                        { x: 120, y: 295, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+                        { x: 220, y: 295, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+                        { x: 70, y: 310, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+                        { x: 270, y: 310, vx: 0, vy: 0, radius: 12, type: 'my', color: '#222' },
+
+                        // 적 돌 5개 (위쪽 배치)
+                        { x: 170, y: 60, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
+                        { x: 120, y: 45, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
+                        { x: 220, y: 45, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
+                        { x: 70, y: 30, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' },
+                        { x: 270, y: 30, vx: 0, vy: 0, radius: 12, type: 'enemy', color: '#fff' }
                     ];
                 }
 
@@ -632,15 +641,12 @@
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
-                    // 내 돌 클릭 확인
-                    const myStone = stones.find(s => s.type === 'my');
+                    // 첫 번째 내 돌 선택 (또는 클릭한 돌)
+                    const myStone = stones.find(s => s.type === 'my' && Math.hypot(mouseX - s.x, mouseY - s.y) <= s.radius);
                     if (myStone) {
-                        const dist = Math.hypot(mouseX - myStone.x, mouseY - myStone.y);
-                        if (dist <= myStone.radius) {
-                            isDragging = true;
-                            dragStart = { x: myStone.x, y: myStone.y };
-                            dragCurrent = { x: mouseX, y: mouseY };
-                        }
+                        isDragging = true;
+                        dragStart = { x: myStone.x, y: myStone.y };
+                        dragCurrent = { x: mouseX, y: mouseY };
                     }
                 });
 
@@ -655,9 +661,9 @@
                     isDragging = false;
                     const myStone = stones.find(s => s.type === 'my');
                     if (myStone) {
-                        // 당긴 방향의 반대로 힘 부여 (최대치 제한)
-                        const dx = dragStart.x - dragCurrent.x;
-                        const dy = dragStart.y - dragCurrent.y;
+                        // 🌟 돌이 날아가는 진행 방향(당기는 방향과 동일)으로 힘 부여
+                        const dx = dragCurrent.x - dragStart.x;
+                        const dy = dragCurrent.y - dragStart.y;
                         myStone.vx = dx * 0.18;
                         myStone.vy = dy * 0.18;
                     }
@@ -674,14 +680,13 @@
                     aCtx.lineWidth = 6;
                     aCtx.strokeRect(3, 3, 334, 334);
 
-                    // 돌 물리 연산 및 충돌
+                    // 돌 물리 연산 및 장외 아웃 판정
                     stones.forEach(s => {
                         s.x += s.vx;
                         s.y += s.vy;
                         s.vx *= 0.96; // 마찰력
                         s.vy *= 0.96;
 
-                        // 벽 충돌 (장외 아웃 판정)
                         if (s.x - s.radius < 0 || s.x + s.radius > 340 || s.y - s.radius < 0 || s.y + s.radius > 340) {
                             s.out = true;
                         }
@@ -702,13 +707,11 @@
                             if (dist < minDist) {
                                 let angle = Math.atan2(dy, dx);
                                 let overlap = minDist - dist;
-                                // 위치 겹침 해제
                                 s1.x -= Math.cos(angle) * overlap / 2;
                                 s1.y -= Math.sin(angle) * overlap / 2;
                                 s2.x += Math.cos(angle) * overlap / 2;
                                 s2.y += Math.sin(angle) * overlap / 2;
 
-                                // 속도 교환 (탄성 충돌)
                                 let tempVx = s1.vx;
                                 let tempVy = s1.vy;
                                 s1.vx = s2.vx * 0.9;
@@ -737,15 +740,15 @@
                         aCtx.stroke();
                     });
 
-                    // 🌟 [시각화 구현] 드래그 중일 때 방향 조준 화살표 + 우측 힘(Power) 세로 게이지 표시
+                    // 🌟 [요청 반영] 드래그 중일 때 '돌이 진행하는 방향'으로 조준 화살표 표시 + 우측 Power 세로 게이지
                     if (isDragging) {
                         const myStone = stones.find(s => s.type === 'my');
                         if (myStone) {
                             const dx = dragCurrent.x - dragStart.x;
                             const dy = dragCurrent.y - dragStart.y;
-                            const pullDist = Math.hypot(dx, dy); // 당긴 거리 (힘)
+                            const pullDist = Math.hypot(dx, dy);
 
-                            // 1. 방향 조준 화살표 (돌 중심에서 당기는 반대 방향으로 뻗어나감)
+                            // 돌 중심에서 드래그하는 방향(진행 방향)으로 화살표 선사
                             const angle = Math.atan2(dy, dx);
                             const arrowLength = Math.min(pullDist * 1.5, 120);
 
@@ -768,18 +771,17 @@
                             aCtx.fill();
                             aCtx.closePath();
 
-                            // 2. 우측 세로 힘(Power) 게이지 바
+                            // 우측 세로 힘(Power) 게이지 바
                             const gaugeHeight = Math.min(pullDist * 1.2, 150);
                             aCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                            aCtx.fillRect(315, 95, 14, 152); // 게이지 배경 틀
+                            aCtx.fillRect(315, 95, 14, 152);
 
-                            // 힘 크기에 따른 그라데이션 색상 (초록 -> 주황 -> 빨강)
                             let gaugeColor = '#4CD964';
                             if (gaugeHeight > 50) gaugeColor = '#FF9500';
                             if (gaugeHeight > 100) gaugeColor = '#FF3B30';
 
                             aCtx.fillStyle = gaugeColor;
-                            aCtx.fillRect(317, 245 - gaugeHeight, 10, gaugeHeight); // 채워지는 힘 바
+                            aCtx.fillRect(317, 245 - gaugeHeight, 10, gaugeHeight);
 
                             aCtx.fillStyle = '#333';
                             aCtx.font = 'bold 10px sans-serif';
@@ -787,19 +789,19 @@
                         }
                     }
 
-                    // 승리/패배 판정
+                    // 승리/패배 판정 및 결과 화면 연동
                     const enemyCount = stones.filter(s => s.type === 'enemy').length;
-                    const hasMyStone = stones.some(s => s.type === 'my');
-                    document.getElementById('alkagakiScore').innerText = `남은 적 돌: ${enemyCount}개`;
+                    const myCount = stones.filter(s => s.type === 'my').length;
+                    document.getElementById('alkagakiScore').innerText = `남은 적 돌: ${enemyCount}개 (내 돌: ${myCount}개)`;
 
                     if (enemyCount === 0) {
                         cancelAnimationFrame(alkagakiAnim);
                         isAlkaPlaying = false;
                         setTimeout(() => saveAndShowRanking('alkagakiModal', "alkagaki", "알까기", 100), 300);
-                    } else if (!hasMyStone) {
+                    } else if (myCount === 0) {
                         cancelAnimationFrame(alkagakiAnim);
                         isAlkaPlaying = false;
-                        alert("패배했습니다! 다시 도전해보세요.");
+                        setTimeout(() => saveAndShowRanking('alkagakiModal', "alkagaki", "알까기", 20), 300);
                     }
                 }
 
