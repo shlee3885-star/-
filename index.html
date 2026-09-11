@@ -398,7 +398,7 @@
                 <button id="copyAlkaCodeBtn" style="background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">코드 복사</button>
             </div>
             <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; text-align: left; margin: 5px 0;">
-                <strong>참여 중인 플레이어 (2명):</strong>
+                <strong>참여 중인 플레이어 (최대 2명):</strong>
                 <ul id="alkaPlayersList" style="margin: 4px 0 0 20px; padding: 0; font-size: 13px; color: #333;"></ul>
             </div>
             <div class="modal-buttons">
@@ -639,7 +639,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (띄어쓰기 자동 제거 및 충돌 반동 적용) ---
+            // --- ⚪ 알까기 온라인 친구 대전 시스템 구현 (방 입장 시 유령 데이터 및 중복 제거 청소 로직 적용) ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -657,7 +657,6 @@
             });
 
             document.getElementById('joinAlkaRoomBtn')?.addEventListener('click', async () => {
-                // 🌟 [요청 반영] 입력한 방 코드에서 모든 띄어쓰기를 자동으로 제거하고 대문자로 변환
                 const rawRoomCode = document.getElementById('alkaRoomCode').value;
                 const roomCode = rawRoomCode.replace(/\s+/g, '').toUpperCase();
                 const name = document.getElementById('alkaNickname').value.trim();
@@ -673,8 +672,16 @@
                 }
 
                 const players = roomData ? (roomData.players || {}) : {};
-                if (Object.keys(players).length >= 2 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 2명)!");
+                const playerKeys = Object.keys(players);
+
+                // 🌟 [핵심 개선] 대기실 인원이 2명이 꽉 찼는데 내가 그 방에 없는 사람이면 입장 차단 (유령 방 충돌 방지)
+                if (playerKeys.length >= 2 && !players[name]) {
+                    return alert("방 인원이 가득 찼습니다 (최대 2명)! 다른 방 코드를 사용해주세요.");
+                }
+
+                // 만약 방에 아무도 없거나 새로 파는 방이라면 기존 데이터 찌꺼기 깔끔히 초기화
+                if (playerKeys.length === 0) {
+                    await roomRef.remove();
                 }
 
                 alkaRoomCode = roomCode;
