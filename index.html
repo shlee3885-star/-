@@ -628,12 +628,22 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 온라인 Firestore 랭킹 조회 함수
+        // 🏆 온라인 Firestore 랭킹 조회 함수 (비정상적인 3초 미만 더미 기록 자동 필터링 적용)
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
                 let rankings = [];
-                snapshot.forEach((doc) => rankings.push(doc.data()));
+                snapshot.forEach((doc) => {
+                    let data = doc.data();
+                    // 🌟 [자동 필터] 벽돌깨기인 경우 3초 미만의 비정상적인 기록은 랭킹에서 제외
+                    if (gameKey === "brick") {
+                        if (Number(data.score) >= 3.0) {
+                            rankings.push(data);
+                        }
+                    } else {
+                        rankings.push(data);
+                    }
+                });
                 
                 if (gameKey === "brick") {
                     rankings.sort((a, b) => a.score - b.score);
@@ -649,7 +659,7 @@
                     rankingHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${data.name}${crown}</span><span style="color: #2196F3;">${scoreDisplay}</span></div>`;
                     rank++;
                 });
-                if (rank === 1) rankingHtml = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
+                if (rank === 1) rankingHtml = "<p style='text-align: center; color: #777;'>아직 등록된 유효한 기록이 없습니다!</p>";
 
                 document.getElementById('rankingGameTitle').innerText = `🏆 ${gameName} TOP 3`;
                 document.getElementById('rankingList').innerHTML = rankingHtml;
@@ -1139,416 +1149,6 @@
                 checkLevelClear(data, hands, data.lives, activePlayers);
             });
 
-            // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
-            const chatMessages = document.getElementById('chatMessages');
-            const chatMsgInput = document.getElementById('chatMsgInput');
-            const chatNameInput = document.getElementById('chatNameInput');
-            document.getElementById('sendChatBtn')?.addEventListener('click', () => {
-                const name = chatNameInput.value.trim() || "익명"; const text = chatMsgInput.value.trim();
-                if (!text) return;
-                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
-                chatMsgInput.value = '';
-            });
-            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
-                chatMessages.innerHTML = '';
-                const data = snapshot.val();
-                if (data) {
-                    Object.values(data).forEach(msg => {
-                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-            });
-
-            // --- 🎲 미니 라스베가스 방 시스템 및 대소문자 무시 방 코드 입력 처리 ---
-            let currentRoomCode = "";
-            let myNickname = "";
-            let vegasRoomRef = null;
-            let roomChatRef = null;
-
-            document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
-                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                let randomCode = "";
-                for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-                document.getElementById('vegasRoomCode').value = randomCode;
-            });
-
-            document.getElementById('joinVegasRoomBtn')?.addEventListener('click', async () => {
-                const roomCode = document.getElementById('vegasRoomCode').value.trim().toUpperCase();
-                const name = document.getElementById('vegasNickname').value.trim();
-                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
-
-                const roomRef = rtdb.ref(`vegas_rooms/${roomCode}`);
-                const snap = await roomRef.once('value');
-                const roomData = snap.val();
-
-                if (roomData && roomData.status === 'playing') {
-                    return alert("이미 게임이 진행 중인 방입니다!");
-                }
-
-                const players = roomData ? (roomData.players || {}) : {};
-                if (Object.keys(players).length >= 8 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 8명)!");
-                }
-
-                currentRoomCode = roomCode;
-                myNickname = name;
-                vegasRoomRef = roomRef;
-                roomChatRef = rtdb.ref(`vegas_rooms/${roomCode}/chat`);
-
-                await vegasRoomRef.child(`players/${myNickname}`).set(true);
-
-                closeModal('vegasLoginModal');
-                document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${currentRoomCode}]`;
-                openModal('vegasLobbyModal');
-                listenVegasRoom();
-                listenRoomChat();
-            });
-
-            document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
-                navigator.clipboard.writeText(currentRoomCode).then(() => {
-                    alert(`방 코드 [${currentRoomCode}] 복사 완료!`);
-                });
-            });
-
-            function sendRoomChatMessage(inputId) {
-                const inputElem = document.getElementById(inputId);
-                const text = inputElem.value.trim();
-                if (!text || !roomChatRef) return;
-                roomChatRef.push({ name: myNickname, text: text, timestamp: Date.now() });
-                inputElem.value = '';
-            }
-
-            document.getElementById('roomChatSendBtn')?.addEventListener('click', () => sendRoomChatMessage('roomChatInput'));
-            document.getElementById('roomChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendRoomChatMessage('roomChatInput'); });
-
-            document.getElementById('gameChatSendBtn')?.addEventListener('click', () => sendRoomChatMessage('gameChatInput'));
-            document.getElementById('gameChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendRoomChatMessage('gameChatInput'); });
-
-            function listenRoomChat() {
-                if (!roomChatRef) return;
-                roomChatRef.limitToLast(30).on('value', (snapshot) => {
-                    const lobbyBox = document.getElementById('roomChatMessages');
-                    const gameBox = document.getElementById('gameChatMessages');
-                    if (lobbyBox) lobbyBox.innerHTML = '';
-                    if (gameBox) gameBox.innerHTML = '';
-
-                    const data = snapshot.val();
-                    if (data) {
-                        Object.values(data).forEach(msg => {
-                            const chatHtml = `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
-                            if (lobbyBox) lobbyBox.innerHTML += chatHtml;
-                            if (gameBox) gameBox.innerHTML += chatHtml;
-                        });
-                        if (lobbyBox) lobbyBox.scrollTop = lobbyBox.scrollHeight;
-                        if (gameBox) gameBox.scrollTop = gameBox.scrollHeight;
-                    }
-                });
-            }
-
-            window.leaveVegasLobby = function() {
-                if (vegasRoomRef && myNickname) {
-                    vegasRoomRef.child(`players/${myNickname}`).remove();
-                    vegasRoomRef.off();
-                    if (roomChatRef) roomChatRef.off();
-                }
-                closeModal('vegasLobbyModal');
-            };
-
-            window.leaveVegasGame = function() {
-                leaveVegasLobby();
-                closeModal('vegasGameModal');
-            };
-
-            document.getElementById('startGameBtn')?.addEventListener('click', async () => {
-                const snap = await vegasRoomRef.once('value');
-                const data = snap.val();
-                const playersObj = data.players || {};
-                const playerNames = Object.keys(playersObj);
-
-                if (playerNames.length === 0) return alert("참여 인원이 없습니다!");
-
-                const shuffledPlayers = [...playerNames].sort(() => Math.random() - 0.5);
-                
-                let randomPrizes = {};
-                for (let i = 1; i <= 6; i++) {
-                    randomPrizes[i] = (Math.floor(Math.random() * 10) + 1) * 10000;
-                }
-
-                let initialDice = {};
-                playerNames.forEach(p => initialDice[p] = 4);
-
-                await vegasRoomRef.update({
-                    status: 'playing',
-                    turnOrder: shuffledPlayers,
-                    currentTurnIndex: 0,
-                    prizes: randomPrizes,
-                    casinos: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]},
-                    playerDice: initialDice,
-                    rolledDice: {}
-                });
-            });
-
-            function listenVegasRoom() {
-                if (!vegasRoomRef) return;
-                vegasRoomRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (!data) return;
-
-                    const playersObj = data.players || {};
-                    const playerNames = Object.keys(playersObj);
-                    let listHtml = "";
-                    playerNames.forEach(p => {
-                        listHtml += `<li>${p} ${p === myNickname ? '(나)' : ''}</li>`;
-                    });
-                    document.getElementById('lobbyPlayersList').innerHTML = listHtml;
-
-                    if (data.status === 'ended') {
-                        if (!document.getElementById('vegasGameModal').classList.contains('hidden')) {
-                            calculateFinalResults(data);
-                        }
-                        return;
-                    }
-
-                    if (data.status === 'playing') {
-                        if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
-                            closeModal('vegasLobbyModal');
-                        }
-                        if (document.getElementById('vegasGameModal').classList.contains('hidden')) {
-                            openModal('vegasGameModal');
-                            document.getElementById('gameRoomTitle').innerText = `🎲 라스베가스 [방: ${currentRoomCode}]`;
-                        }
-                        updateGameScreen(data);
-                    }
-                });
-            }
-
-            function updateGameScreen(data) {
-                const turnOrder = data.turnOrder || [];
-                const currentIndex = data.currentTurnIndex || 0;
-                const currentTurnPlayer = turnOrder[currentIndex];
-                const playerDiceMap = data.playerDice || {};
-                const rolledDiceMap = data.rolledDice || {};
-                const myRemainingDice = playerDiceMap[myNickname] !== undefined ? playerDiceMap[myNickname] : 4;
-                const myRolledDice = rolledDiceMap[myNickname] || [];
-
-                document.getElementById('myDiceCount').innerText = myRemainingDice;
-
-                const diceBox = document.getElementById('diceResultBox');
-                if (myRolledDice.length > 0) {
-                    diceBox.innerText = myRolledDice.join('   ');
-                } else {
-                    diceBox.innerText = "READY";
-                }
-
-                const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
-                if (allZero) {
-                    if (data.status !== 'ended') {
-                        vegasRoomRef.update({ status: 'ended' });
-                    }
-                    return;
-                }
-
-                if (currentTurnPlayer && (playerDiceMap[currentTurnPlayer] || 0) === 0) {
-                    checkAndAdvanceTurn(data);
-                    return;
-                }
-
-                const rollBtn = document.getElementById('rollDiceBtn');
-
-                if (currentTurnPlayer === myNickname) {
-                    document.getElementById('gameTurnBox').innerText = "🔥 [ 내 차례입니다! 주사위를 굴려주세요 ]";
-                    document.getElementById('gameTurnBox').style.backgroundColor = "#e8f5e9";
-                    rollBtn.classList.add('my-turn-blink');
-                } else {
-                    document.getElementById('gameTurnBox').innerText = `⏳ 현재 차례: [ ${currentTurnPlayer} ] 님의 턴입니다.`;
-                    document.getElementById('gameTurnBox').style.backgroundColor = "#fff8e1";
-                    rollBtn.classList.remove('my-turn-blink');
-                }
-
-                const prizes = data.prizes || {};
-                const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                let boardContainer = document.getElementById('casinoBoard');
-                boardContainer.innerHTML = "";
-
-                for (let i = 1; i <= 6; i++) {
-                    const prizeMoney = prizes[i] ? prizes[i].toLocaleString() + '원' : '0원';
-                    const placedList = casinos[i] || [];
-                    
-                    let countsByPlayer = {};
-                    placedList.forEach(name => {
-                        countsByPlayer[name] = (countsByPlayer[name] || 0) + 1;
-                    });
-                    let detailText = Object.keys(countsByPlayer).map(name => `${name}:${countsByPlayer[name]}개`).join(', ') || '없음';
-
-                    const card = document.createElement('div');
-                    card.className = 'casino-card';
-                    card.innerHTML = `
-                        <div>
-                            <strong style="color: #e65100; font-size: 13px;">[ ${i}번 카지노 ]</strong><br>
-                            <span style="color: #2e7d32; font-weight: bold; font-size: 11px;">💰 ${prizeMoney}</span>
-                        </div>
-                        <div style="font-size: 11px; color: #444; background: #fff; padding: 3px; border-radius: 4px; margin-top: 3px; border: 1px solid #ffe0b2;">
-                            👥 <strong>현황:</strong><br>${detailText}
-                        </div>
-                    `;
-                    
-                    const casinoIndex = i;
-                    card.onclick = () => placeVegasDice(casinoIndex);
-                    boardContainer.appendChild(card);
-                }
-            }
-
-            async function checkAndAdvanceTurn(data) {
-                const turnOrder = data.turnOrder || [];
-                const playerDiceMap = data.playerDice || {};
-                let currentIndex = data.currentTurnIndex || 0;
-
-                const allZero = turnOrder.every(p => (playerDiceMap[p] || 0) === 0);
-                if (allZero) return;
-
-                for (let i = 0; i < turnOrder.length; i++) {
-                    currentIndex = (currentIndex + 1) % turnOrder.length;
-                    if ((playerDiceMap[turnOrder[currentIndex]] || 0) > 0) break;
-                }
-
-                await vegasRoomRef.update({ currentTurnIndex: currentIndex });
-            }
-
-            // 주사위 굴리기
-            document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
-                const snap = await vegasRoomRef.once('value');
-                const data = snap.val();
-                const turnOrder = data.turnOrder || [];
-                const currentIndex = data.currentTurnIndex || 0;
-
-                if (turnOrder[currentIndex] !== myNickname) {
-                    return alert("아직 본인 차례가 아닙니다!");
-                }
-
-                const playerDiceMap = data.playerDice || {};
-                const myCount = playerDiceMap[myNickname] || 0;
-
-                if (myCount <= 0) return alert("남은 주사위가 없습니다!");
-
-                const diceBox = document.getElementById('diceResultBox');
-                diceBox.classList.add('rolling');
-                diceBox.innerText = "🎲 🎲 🎲 🎲";
-
-                setTimeout(async () => {
-                    diceBox.classList.remove('rolling');
-                    let newRolled = [];
-                    for (let i = 0; i < myCount; i++) {
-                        newRolled.push(Math.floor(Math.random() * 6) + 1);
-                    }
-                    await vegasRoomRef.child(`rolledDice/${myNickname}`).set(newRolled);
-                }, 500);
-            });
-
-            // 주사위 배치 및 차감 룰 적용
-            window.placeVegasDice = async function(casinoNum) {
-                if (!vegasRoomRef) return;
-                const snap = await vegasRoomRef.once('value');
-                const data = snap.val();
-                if (!data) return;
-
-                const rolledDiceMap = data.rolledDice || {};
-                const myRolled = rolledDiceMap[myNickname] || [];
-
-                if (myRolled.length === 0) {
-                    const turnOrder = data.turnOrder || [];
-                    const currentIndex = data.currentTurnIndex || 0;
-                    if (turnOrder[currentIndex] !== myNickname) {
-                        return alert("지금은 내 차례가 아닙니다!");
-                    }
-                    return alert("먼저 주사위를 굴려주세요!");
-                }
-
-                const matchingDice = myRolled.filter(d => Number(d) === Number(casinoNum));
-                if (matchingDice.length === 0) {
-                    return alert(`굴린 주사위 중에 ${casinoNum}번이 없습니다! 다른 카지노를 선택하세요.`);
-                }
-
-                const usedCount = matchingDice.length;
-
-                vegasRoomRef.transaction((currentData) => {
-                    if (!currentData) return currentData;
-                    if (!currentData.casinos) currentData.casinos = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                    if (!currentData.casinos[casinoNum]) currentData.casinos[casinoNum] = [];
-
-                    for (let d of matchingDice) {
-                        currentData.casinos[casinoNum].push(myNickname);
-                    }
-                    currentData.playerDice[myNickname] -= usedCount;
-                    if (!currentData.rolledDice) currentData.rolledDice = {};
-                    currentData.rolledDice[myNickname] = null;
-                    return currentData;
-                }, async (error, committed) => {
-                    if (committed) {
-                        alert(`${usedCount}개의 주사위가 ${casinoNum}번 카지노에 배치되었습니다!`);
-                        document.getElementById('diceResultBox').innerText = "READY";
-
-                        const freshSnap = await vegasRoomRef.once('value');
-                        const freshData = freshSnap.val();
-                        
-                        const allZero = (freshData.turnOrder || []).every(p => (freshData.playerDice || {})[p] === 0);
-                        if (allZero) {
-                            await vegasRoomRef.update({ status: 'ended' });
-                            calculateFinalResults(freshData);
-                        } else {
-                            await checkAndAdvanceTurn(freshData);
-                        }
-                    }
-                });
-            };
-
-            async function calculateFinalResults(data) {
-                closeModal('vegasGameModal');
-                const prizes = data.prizes || {};
-                const casinos = data.casinos || {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
-                const playersObj = data.players || {};
-                let totalEarnings = {};
-                Object.keys(playersObj).forEach(p => totalEarnings[p] = 0);
-
-                for (let i = 1; i <= 6; i++) {
-                    const prize = prizes[i] || 0;
-                    const diceList = casinos[i] || [];
-                    if (diceList.length === 0) continue;
-
-                    let counts = {};
-                    diceList.forEach(name => { counts[name] = (counts[name] || 0) + 1; });
-
-                    let countFrequency = {};
-                    Object.values(counts).forEach(cnt => { countFrequency[cnt] = (countFrequency[cnt] || 0) + 1; });
-
-                    let validCounts = {};
-                    Object.keys(counts).forEach(name => {
-                        let cnt = counts[name];
-                        if (countFrequency[cnt] === 1) validCounts[name] = cnt;
-                    });
-
-                    let sortedValid = Object.keys(validCounts).sort((a, b) => validCounts[b] - validCounts[a]);
-
-                    if (sortedValid.length > 0) {
-                        let winner = sortedValid[0];
-                        totalEarnings[winner] += prize;
-                    }
-                }
-
-                let finalRanking = Object.keys(totalEarnings).sort((a, b) => totalEarnings[b] - totalEarnings[a]);
-
-                let resultHtml = "";
-                let rank = 1;
-                finalRanking.forEach(name => {
-                    let crown = (rank === 1) ? " 👑" : "";
-                    resultHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${name}${crown}</span><span style="color: #2e7d32; font-weight: bold;">${totalEarnings[name].toLocaleString()}원</span></div>`;
-                    rank++;
-                });
-
-                document.getElementById('finalScoreBoard').innerHTML = resultHtml;
-                openModal('vegasResultModal');
-            }
-
             // --- 회원가입 및 미니게임 구동 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
                 const name = document.getElementById('regName').value;
@@ -1627,7 +1227,7 @@
                 });
             }
 
-            // 2. 벽돌 깨기 (랭킹: 소요 시간(초)이 적을수록 순위가 높음)
+            // 2. 벽돌 깨기 (랭킹: 소요 시간(초)이 적을수록 순위가 높음 + 아래 타임란 실시간 갱신)
             const brickCanvas = document.getElementById('brickCanvas');
             if (brickCanvas) {
                 const bCtx = brickCanvas.getContext('2d');
@@ -1647,6 +1247,8 @@
                     elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
                     bCtx.fillStyle = "#333"; bCtx.font = "12px sans-serif";
                     bCtx.fillText(`타임: ${elapsedTime}초`, 20, 20);
+                    
+                    document.getElementById('brickScore').innerText = `Time: ${elapsedTime}s`;
 
                     for(let c=0; c<brickInfo.col; c++){
                         for(let r=0; r<brickInfo.row; r++){
@@ -1678,6 +1280,7 @@
                     if(isBrickPlaying) return; cancelAnimationFrame(brickAnimation); bricks = [];
                     for(let c=0; c<brickInfo.col; c++){ bricks[c] = []; for(let r=0; r<brickInfo.row; r++) bricks[c][r] = {x:0, y:0, status:1}; }
                     ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }; paddle.x = 162.5; brickScore = 0; 
+                    document.getElementById('brickScore').innerText = `Time: 0.0s`;
                     startTime = Date.now(); isBrickPlaying = true; brickLoop();
                 });
             }
