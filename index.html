@@ -189,7 +189,7 @@
     <div id="mindLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🧠 더 마인드 (협동)</h2>
-            <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 대기실로 입장하세요! (최대 7명)</p>
+            <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 7명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="mindRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
                 <button id="mindRandomRoomBtn" style="background-color: #3f51b5; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
@@ -777,7 +777,7 @@
                 if (roomData.status === 'ended' || playerKeys.length === 0) {
                     await roomRef.remove();
                 } else if (playerKeys.length >= 7 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 7인)!");
+                    return alert("방 인원이 가득 찼습니다 (최대 7명)!");
                 }
 
                 mindRoomCode = roomCode;
