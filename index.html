@@ -777,7 +777,7 @@
                 if (roomData.status === 'ended' || playerKeys.length === 0) {
                     await roomRef.remove();
                 } else if (playerKeys.length >= 7 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 7명)!");
+                    return alert("방 인원이 가득 찼습니다 (최대 7인)!");
                 }
 
                 mindRoomCode = roomCode;
@@ -967,12 +967,13 @@
                         });
                         return;
                     } else {
+                        // 🌟 [수정 완료] 실수 후 깎인 생명(currentLives) 값을 데이터베이스에 정확히 저장하고 레벨은 그대로 유지
                         await mindRoomRef.update({
                             lives: currentLives,
                             centerCard: cardVal,
                             hands: hands
                         });
-                        checkLevelClear(data, hands);
+                        checkLevelClear(data, hands, currentLives);
                     }
                 } else {
                     let myHand = hands[mindNickname] || [];
@@ -983,11 +984,11 @@
                         centerCard: cardVal,
                         hands: hands
                     });
-                    checkLevelClear(data, hands);
+                    checkLevelClear(data, hands, data.lives);
                 }
             };
 
-            async function checkLevelClear(data, hands) {
+            async function checkLevelClear(data, hands, currentLives) {
                 const allPlayers = Object.keys(hands);
                 let totalRemainingCards = 0;
                 allPlayers.forEach(p => {
@@ -1003,8 +1004,8 @@
                         });
                     } else {
                         alert(`🎉 레벨 ${data.level} 클리어! 다음 레벨(${nextLevel})로 진입합니다.`);
-                        // 🌟 [수정 완료] 레벨 클리어 후 다음 레벨로 넘어갈 때 현재 남은 생명(data.lives)과 수리검(data.shurikens)이 그대로 유지되도록 수정!
-                        startMindLevel(nextLevel, data.lives, data.shurikens, allPlayers);
+                        // 🌟 [수정 완료] 다음 레벨로 넘어갈 때 깎였던 생명(currentLives)과 수리검 개수가 온전하게 연계되어 유지됨!
+                        startMindLevel(nextLevel, currentLives, data.shurikens, allPlayers);
                     }
                 }
             }
@@ -1036,7 +1037,7 @@
                     centerCard: maxLowest,
                     hands: hands
                 });
-                checkLevelClear(data, hands);
+                checkLevelClear(data, hands, data.lives);
             });
 
             // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
