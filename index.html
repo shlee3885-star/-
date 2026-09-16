@@ -1063,7 +1063,6 @@
                 if (alertBox) alertBox.style.display = 'none';
             }
 
-            // 카드를 낼 때의 엄격한 더 마인드 검증 로직
             window.playMindCard = async function(cardVal, data) {
                 stopMindTimer();
                 const hands = data.hands || {};
@@ -1250,11 +1249,11 @@
                 });
             }
 
-            // 2. 벽돌 깨기 (랭킹: 소요 시간(초)이 적을수록 순위가 높음 + 아래 타임란 실시간 갱신)
+            // 2. 벽돌 깨기 (랭킹: 소요 시간(초) 고정 오류 수정 완료)
             const brickCanvas = document.getElementById('brickCanvas');
             if (brickCanvas) {
                 const bCtx = brickCanvas.getContext('2d');
-                let brickAnimation, isBrickPlaying = false, brickScore = 0, startTime = 0, elapsedTime = 0;
+                let brickAnimation, isBrickPlaying = false, brickScore = 0, startTime = 0, finalElapsedTime = 0;
                 let ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }, paddle = { height: 10, width: 75, x: 162.5 };
                 let brickInfo = { row: 4, col: 5, width: 65, height: 20, padding: 10, offsetTop: 30, offsetLeft: 20 }, bricks = [];
                 window.closeBrickModal = function() { closeModal('brickModal'); cancelAnimationFrame(brickAnimation); isBrickPlaying = false; };
@@ -1267,11 +1266,12 @@
                 function brickLoop() {
                     brickAnimation = requestAnimationFrame(brickLoop); bCtx.clearRect(0,0,400,300);
                     
-                    elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                    // 🌟 [수정 완료] 매 프레임마다 실시간으로 경과 시간 계산
+                    let currentElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                     bCtx.fillStyle = "#333"; bCtx.font = "12px sans-serif";
-                    bCtx.fillText(`타임: ${elapsedTime}초`, 20, 20);
+                    bCtx.fillText(`타임: ${currentElapsed}초`, 20, 20);
                     
-                    document.getElementById('brickScore').innerText = `Time: ${elapsedTime}s`;
+                    document.getElementById('brickScore').innerText = `Time: ${currentElapsed}s`;
 
                     for(let c=0; c<brickInfo.col; c++){
                         for(let r=0; r<brickInfo.row; r++){
@@ -1287,15 +1287,15 @@
                     
                     if(brickScore === brickInfo.row*brickInfo.col){ 
                         cancelAnimationFrame(brickAnimation); isBrickPlaying = false; 
-                        let finalTime = Number(elapsedTime);
-                        setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", finalTime), 300); 
+                        finalElapsedTime = Number(currentElapsed); // 🌟 최종 클리어 시점의 시간 고정
+                        setTimeout(() => saveAndShowRanking('brickModal', "brick", "벽돌 깨기", finalElapsedTime), 300); 
                         return; 
                     }
                     if(ball.x+ball.dx > 400-ball.radius || ball.x+ball.dx < ball.radius) ball.dx = -ball.dx;
                     if(ball.y+ball.dy < ball.radius) ball.dy = -ball.dy;
                     else if(ball.y+ball.dy > 300-ball.radius){ 
                         if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) ball.dy = -ball.dy; 
-                        else{ cancelAnimationFrame(brickAnimation); isBrickPlaying = false; alert(`게임 실패! (소요 시간: ${elapsedTime}초)`); return; } 
+                        else{ cancelAnimationFrame(brickAnimation); isBrickPlaying = false; alert(`게임 실패! (소요 시간: ${currentElapsed}초)`); return; } 
                     }
                     ball.x += ball.dx; ball.y += ball.dy;
                 }
@@ -1304,7 +1304,8 @@
                     for(let c=0; c<brickInfo.col; c++){ bricks[c] = []; for(let r=0; r<brickInfo.row; r++) bricks[c][r] = {x:0, y:0, status:1}; }
                     ball = { x: 200, y: 280, dx: 3, dy: -3, radius: 8 }; paddle.x = 162.5; brickScore = 0; 
                     document.getElementById('brickScore').innerText = `Time: 0.0s`;
-                    startTime = Date.now(); isBrickPlaying = true; brickLoop();
+                    startTime = Date.now(); // 🌟 게임 시작 시간 초기화
+                    isBrickPlaying = true; brickLoop();
                 });
             }
 
