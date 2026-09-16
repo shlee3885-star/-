@@ -876,6 +876,7 @@
                 const players = Object.keys(data.players || {});
                 if (players.length === 0) return alert("참여 중인 팀원이 없습니다!");
 
+                // 🌟 [다인원 수정] 시작할 때 전체 참여 플레이어 명단을 명확히 배열로 전달
                 startMindLevel(1, 3, 1, players);
             });
 
@@ -902,7 +903,7 @@
                     shurikens: shurikens,
                     centerCard: 0,
                     hands: hands,
-                    playedCardsHistory: []
+                    activePlayers: players // 🌟 [다인원 수정] 현재 라운드에 참여 중인 전체 플레이어 명단을 확실히 동기화
                 });
             }
 
@@ -948,7 +949,6 @@
                 document.getElementById('mindCenterCard').innerText = data.centerCard === 0 ? "시작 전" : data.centerCard;
 
                 const hands = data.hands || {};
-                // 🌟 [수정 완료] 데이터베이스에 닉네임 키가 정확히 일치하는지 확인하고 가져오기
                 const myHand = hands[mindNickname] || [];
                 const handContainer = document.getElementById('mindMyHand');
                 handContainer.innerHTML = "";
@@ -1028,11 +1028,12 @@
             window.playMindCard = async function(cardVal, data) {
                 stopMindTimer();
                 const hands = data.hands || {};
-                const allPlayers = Object.keys(hands);
+                const activePlayers = data.activePlayers || Object.keys(hands);
 
                 let lowerCardExists = false;
 
-                for (let p of allPlayers) {
+                // 🌟 [다인원 수정] activePlayers 명단을 기준으로 모든 팀원의 남은 손패 비교
+                for (let p of activePlayers) {
                     let pHardCards = hands[p] || [];
                     if (pHardCards.length > 0) {
                         let minP = Math.min(...pHardCards);
@@ -1046,7 +1047,7 @@
                     let currentLives = data.lives - 1;
                     alert(`앗! 실수했습니다! (${mindNickname}님이 낸 카드: ${cardVal}) 팀원 중에 더 낮은 카드를 가진 사람이 있었습니다! 생명 -1 ❤️`);
 
-                    for (let p of allPlayers) {
+                    for (let p of activePlayers) {
                         if (hands[p]) {
                             hands[p] = hands[p].filter(c => c > cardVal);
                         }
@@ -1064,7 +1065,7 @@
                             centerCard: cardVal,
                             hands: hands
                         });
-                        checkLevelClear(data, hands, currentLives);
+                        checkLevelClear(data, hands, currentLives, activePlayers);
                     }
                 } else {
                     let myHand = hands[mindNickname] || [];
@@ -1075,16 +1076,12 @@
                         centerCard: cardVal,
                         hands: hands
                     });
-                    checkLevelClear(data, hands, data.lives);
+                    checkLevelClear(data, hands, data.lives, activePlayers);
                 }
             };
 
-            // 🌟 [핵심 수정] 모든 플레이어의 카드가 0장이 되어야만 레벨 클리어 판정!
-            async function checkLevelClear(data, hands, currentLives) {
-                const snap = await mindRoomRef.child('players').once('value');
-                const playersObj = snap.val() || {};
-                const activePlayers = Object.keys(playersObj);
-
+            // 🌟 [다인원 수정] activePlayers에 속한 모든 인원의 카드가 정확히 0장일 때만 레벨 클리어
+            async function checkLevelClear(data, hands, currentLives, activePlayers) {
                 let totalRemainingCards = 0;
                 activePlayers.forEach(p => {
                     if (hands[p]) {
@@ -1114,8 +1111,7 @@
                 if (data.shurikens <= 0) return alert("사용할 수 있는 수리검이 없습니다!");
 
                 let hands = data.hands || {};
-                const snapPlayers = await mindRoomRef.child('players').once('value');
-                const activePlayers = Object.keys(snapPlayers.val() || {});
+                const activePlayers = data.activePlayers || Object.keys(hands);
                 let lowestCards = [];
 
                 activePlayers.forEach(p => {
@@ -1136,7 +1132,7 @@
                     centerCard: maxLowest,
                     hands: hands
                 });
-                checkLevelClear(data, hands, data.lives);
+                checkLevelClear(data, hands, data.lives, activePlayers);
             });
 
             // --- 💬 기존 실시간 오픈 채팅 원복 로직 ---
