@@ -238,7 +238,7 @@
             <div id="mindStatusBox" style="font-size: 12px; font-weight: bold; color: #3f51b5; background: #e8eaf6; padding: 6px; border-radius: 6px; margin-top: 4px;">
                 레벨 <span id="mindLevelNum">1</span> | 남은 생명 ❤️ <span id="mindLifeCount">3</span> | 남은 수리검 ⭐️ <span id="mindShurikenCount">1</span>
             </div>
-            <!-- 🌟 타이머 및 카운트다운 알림 표시 영역 -->
+            <!-- 타이머 및 카운트다운 알림 표시 영역 -->
             <div id="mindTimerAlert" style="font-size: 12px; font-weight: bold; color: #d32f2f; background: #ffebee; padding: 4px; border-radius: 4px; margin-top: 4px; display: none;"></div>
 
             <div style="background: #fff; border: 2px dashed #3f51b5; padding: 10px; border-radius: 8px; margin: 6px 0;">
@@ -761,7 +761,6 @@
             let mindRoomRef = null;
             let mindRoomChatRef = null;
             
-            // 🌟 [타이머 관련 변수]
             let mindTimer = null;
             let mindCountdownTimer = null;
             let lastActivityTime = Date.now();
@@ -937,7 +936,6 @@
                             openModal('mindGameModal');
                         }
                         updateMindGameScreen(data);
-                        // 🌟 게임 중일 때 타이머 작동 시작/유지
                         resetMindTimer();
                     }
                 });
@@ -967,7 +965,6 @@
                 }
             }
 
-            // 🌟 [타이머 제어 함수들] 15초 무활동 시 5초 카운트다운 후 생명 차감
             function resetMindTimer() {
                 stopMindTimer();
                 lastActivityTime = Date.now();
@@ -976,7 +973,7 @@
 
                 mindTimer = setTimeout(() => {
                     startCountdown();
-                }, 15000); // 15초 대기
+                }, 15000);
             }
 
             function startCountdown() {
@@ -997,7 +994,6 @@
                         clearInterval(mindCountdownTimer);
                         if (alertBox) alertBox.style.display = 'none';
 
-                        // 5초 카운트다운 끝날 때까지 아무도 안 냈으면 생명 차감 처리 (방장 권한으로 트랜잭션 수행)
                         if (mindRoomRef) {
                             mindRoomRef.transaction((currentData) => {
                                 if (!currentData || currentData.status !== 'playing') return currentData;
@@ -1029,7 +1025,7 @@
 
             // 카드를 낼 때의 엄격한 더 마인드 검증 로직
             window.playMindCard = async function(cardVal, data) {
-                stopMindTimer(); // 🌟 카드 내면 타이머 리셋
+                stopMindTimer();
                 const hands = data.hands || {};
                 const allPlayers = Object.keys(hands);
 
@@ -1082,6 +1078,7 @@
                 }
             };
 
+            // 🌟 [핵심 수정] 모든 플레이어의 카드가 0장이 되어야만 레벨 클리어 판정!
             async function checkLevelClear(data, hands, currentLives) {
                 const allPlayers = Object.keys(hands);
                 let totalRemainingCards = 0;
@@ -1098,14 +1095,14 @@
                             resultMsg: `👑 대단합니다! 10레벨 최종 클리어 승리!`
                         });
                     } else {
-                        alert(`🎉 레벨 ${data.level} 클리어! 다음 레벨(${nextLevel})로 진입합니다.`);
+                        alert(`🎉 모든 팀원이 카드를 다 털었습니다! 레벨 ${data.level} 클리어! 다음 레벨(${nextLevel})로 진입합니다.`);
                         startMindLevel(nextLevel, currentLives, data.shurikens, allPlayers);
                     }
                 }
             }
 
             document.getElementById('mindUseShurikenBtn')?.addEventListener('click', async () => {
-                stopMindTimer(); // 🌟 수리검 써도 타이머 리셋
+                stopMindTimer();
                 const snap = await mindRoomRef.once('value');
                 const data = snap.val() || {};
                 if (data.shurikens <= 0) return alert("사용할 수 있는 수리검이 없습니다!");
