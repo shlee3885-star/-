@@ -189,7 +189,7 @@
     <div id="mindLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🧠 더 마인드 (협동)</h2>
-            <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 7명)</p>
+            <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 대기실로 입장하세요! (최대 7명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="mindRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
                 <button id="mindRandomRoomBtn" style="background-color: #3f51b5; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
@@ -628,18 +628,15 @@
         window.openModal = function(modalId) { document.getElementById(modalId)?.classList.remove('hidden'); };
         window.closeModal = function(modalId) { document.getElementById(modalId)?.classList.add('hidden'); };
 
-        // 🏆 온라인 Firestore 랭킹 조회 함수 (비정상적인 3초 미만 더미 기록 자동 필터링 적용)
+        // 🏆 온라인 Firestore 랭킹 조회 함수
         async function fetchAndShowRanking(gameKey, gameName) {
             try {
                 const snapshot = await db.collection("rankings").where("game", "==", gameKey).get();
                 let rankings = [];
                 snapshot.forEach((doc) => {
                     let data = doc.data();
-                    // 🌟 [자동 필터] 벽돌깨기인 경우 3초 미만의 비정상적인 기록은 랭킹에서 제외
                     if (gameKey === "brick") {
-                        if (Number(data.score) >= 3.0) {
-                            rankings.push(data);
-                        }
+                        if (Number(data.score) >= 3.0) rankings.push(data);
                     } else {
                         rankings.push(data);
                     }
@@ -771,6 +768,32 @@
             bindSide('rankFlappy', () => fetchAndShowRanking("flappy", "플래피 버드"));
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
+
+            // --- 💬 메인 실시간 오픈 채팅 바인딩 ---
+            const chatMessages = document.getElementById('chatMessages');
+            const chatMsgInput = document.getElementById('chatMsgInput');
+            const chatNameInput = document.getElementById('chatNameInput');
+            
+            function sendMainChatMessage() {
+                const name = chatNameInput.value.trim() || "익명"; 
+                const text = chatMsgInput.value.trim();
+                if (!text) return;
+                rtdb.ref('messages').push({ name, text, timestamp: Date.now() });
+                chatMsgInput.value = '';
+            }
+            document.getElementById('sendChatBtn')?.addEventListener('click', sendMainChatMessage);
+            document.getElementById('chatMsgInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMainChatMessage(); });
+
+            rtdb.ref('messages').limitToLast(50).on('value', (snapshot) => {
+                chatMessages.innerHTML = '';
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(msg => {
+                        chatMessages.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
 
             // --- 🧠 🧠 '더 마인드(The Mind)' 실시간 협동 멀티플레이 시스템 (최대 7인) ---
             let mindRoomCode = "";
