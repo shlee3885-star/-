@@ -189,7 +189,7 @@
     <div id="mindLoginModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2>🧠 더 마인드 (협동)</h2>
-            <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 대기실로 입장하세요! (최대 7명)</p>
+            <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 7명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="mindRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
                 <button id="mindRandomRoomBtn" style="background-color: #3f51b5; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
@@ -1050,6 +1050,7 @@
                 if (alertBox) alertBox.style.display = 'none';
             }
 
+            // 카드를 낼 때의 엄격한 더 마인드 검증 로직
             window.playMindCard = async function(cardVal, data) {
                 stopMindTimer();
                 const hands = data.hands || {};
@@ -1071,7 +1072,6 @@
                     let currentLives = data.lives - 1;
                     alert(`앗! 실수했습니다! (${mindNickname}님이 낸 카드: ${cardVal}) 팀원 중에 더 낮은 카드를 가진 사람이 있었습니다! 생명 -1 ❤️`);
 
-                    // 🌟 [수정 완료] 실수했을 때 카드 버림 처리를 하더라도, 현재 레벨의 카드들이 모두 소진되지 않았다면 checkLevelClear를 호출하지 않고 현재 레벨을 유지!
                     for (let p of activePlayers) {
                         if (hands[p]) {
                             hands[p] = hands[p].filter(c => c > cardVal);
@@ -1090,7 +1090,7 @@
                             centerCard: cardVal,
                             hands: hands
                         });
-                        // 실수 후 남은 카드가 모두 털렸는지 여부만 별도로 체크하도록 분리
+                        // 🌟 [수정 완료] 실수했을 때는 오직 카드 소진 여부만 엄격하게 체크하도록 분리된 함수 호출
                         checkOnlyLevelClear(data, hands, currentLives, activePlayers);
                     }
                 } else {
@@ -1106,7 +1106,7 @@
                 }
             };
 
-            // 🌟 [추가 분리] 오직 모든 카드가 0장이 되었을 때만 다음 레벨로 진입하는 엄격한 클리어 체크 함수
+            // 🌟 [수정 완료] 모든 플레이어의 손에 카드가 단 한 장도 남지 않았을 때만 다음 레벨로 넘어가는 클리어 판정 함수
             async function checkOnlyLevelClear(data, hands, currentLives, activePlayers) {
                 let totalRemainingCards = 0;
                 activePlayers.forEach(p => {
