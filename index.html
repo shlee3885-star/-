@@ -552,8 +552,8 @@
     </div>
     <div id="brickModal" class="modal hidden">
         <div class="modal-content dino-content">
-            <h2>🧱 벽돌 깨기 (아케이드)</h2>
-            <p>12초마다 벽돌이 내려옵니다! 바닥에 닿으면 게임 오버!</p>
+            <h2>🧱 벽돌 깨기 (아케이드 서바이벌)</h2>
+            <p>12초→10초→8초→6초(최고난이도) 간격으로 벽돌이 내려옵니다!</p>
             <canvas id="brickCanvas" width="400" height="300"></canvas>
             <h3 id="brickScore">Score: 0</h3>
             <div class="modal-buttons" style="justify-content: center; gap: 10px;">
@@ -642,7 +642,8 @@
                 let rankingHtml = ""; let rank = 1;
                 top3.forEach((data) => {
                     let crown = (rank === 1) ? " 👑" : "";
-                    rankingHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${data.name}${crown}</span><span style="color: #2196F3;">${data.score}점</span></div>`;
+                    let scoreDisplay = `${data.score}점`;
+                    rankingHtml += `<div class="ranking-item top-rank"><span>${rank}등: ${data.name}${crown}</span><span style="color: #2196F3;">${scoreDisplay}</span></div>`;
                     rank++;
                 });
                 if (rank === 1) rankingHtml = "<p style='text-align: center; color: #777;'>아직 등록된 기록이 없습니다!</p>";
@@ -1237,7 +1238,7 @@
                 });
             }
 
-            // 2. 벽돌 깨기 (아케이드 점수제: 12초마다 벽돌 하단 밀림, 바닥 닿으면 게임 오버)
+            // 2. 벽돌 깨기 (아케이드 서바이벌 점수제: 12초->10초->8초->6초(최고난이도) 간격 하강)
             const brickCanvas = document.getElementById('brickCanvas');
             if (brickCanvas) {
                 const bCtx = brickCanvas.getContext('2d');
@@ -1258,9 +1259,12 @@
                     brickAnimation = requestAnimationFrame(brickLoop); 
                     bCtx.clearRect(0,0,400,300);
 
-                    // 12초마다 벽돌 한 칸씩 아래로 밀어내리기
+                    // 난이도에 따른 하강 주사 간격 계산 (점수가 높을수록 빨라짐: 12초 -> 10초 -> 8초 -> 최소 6초 최고난이도)
+                    let currentInterval = Math.max(6000, 12000 - Math.floor(brickScore / 500) * 2000);
+
+                    // 일정 시간마다 벽돌 한 칸씩 아래로 밀어내리기
                     let now = Date.now();
-                    if (now - lastDescentTime > 12000) {
+                    if (now - lastDescentTime > currentInterval) {
                         lastDescentTime = now;
                         // 맨 아래 행에 활성화된 벽돌이 있는지 체크 (게임 오버 조건)
                         for (let c = 0; c < brickInfo.col; c++) {
@@ -1278,7 +1282,7 @@
                                 bricks[c][r].status = bricks[c][r - 1].status;
                             }
                         }
-                        // 맨 위 행은 새로 생성
+                        // 맨 위 행은 새로 생성 (처음 시작할 때 아래쪽 행들이 비어있도록 맨 위 행만 1로 설정)
                         for (let c = 0; c < brickInfo.col; c++) {
                             bricks[c][0].status = 1;
                         }
@@ -1317,7 +1321,7 @@
                     bCtx.fillStyle = "#4CAF50"; 
                     bCtx.fillRect(paddle.x, 300 - paddle.height, paddle.width, paddle.height);
 
-                    // 벽돌을 전부 깼을 경우 자동 리젠 (무한 아케이드)
+                    // 벽돌을 전부 깼을 경우 새로운 벽돌 리젠 (맨 위 2개 행만 채워서 바로 오버되지 않도록 안전하게 생성)
                     let remainingBricks = 0;
                     for (let c = 0; c < brickInfo.col; c++) {
                         for (let r = 0; r < brickInfo.row; r++) {
@@ -1327,7 +1331,7 @@
                     if (remainingBricks === 0) {
                         for (let c = 0; c < brickInfo.col; c++) {
                             for (let r = 0; r < brickInfo.row; r++) {
-                                bricks[c][r].status = 1;
+                                bricks[c][r].status = (r < 2) ? 1 : 0; // 맨 위 2개 행만 리젠
                             }
                         }
                     }
@@ -1356,7 +1360,8 @@
                     for (let c = 0; c < brickInfo.col; c++) {
                         bricks[c] = []; 
                         for (let r = 0; r < brickInfo.row; r++) {
-                            bricks[c][r] = { x: 0, y: 0, status: 1 }; 
+                            // 🌟 [수정 완료] 시작할 때 맨 위 2개 행만 벽돌을 배치하여 바로 게임 오버가 뜨는 버그 원인 차단
+                            bricks[c][r] = { x: 0, y: 0, status: (r < 2 ? 1 : 0) }; 
                         }
                     }
                     ball = { x: 200, y: 200, dx: 3, dy: -3, radius: 8 }; 
