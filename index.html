@@ -112,10 +112,10 @@
         .memory-card.flipped { background-color: white; border: 2px solid #4CAF50; color: black; cursor: default; }
 
         /* 🧠 더 마인드 카드 스타일 */
-        .mind-hand { display: flex; gap: 8px; justify-content: center; margin: 15px 0; flex-wrap: wrap; min-height: 70px; }
+        .mind-hand { display: flex; gap: 8px; justify-content: center; margin: 10px 0; flex-wrap: wrap; min-height: 60px; }
         .mind-card {
-            width: 50px; height: 70px; background: white; border: 2px solid #3f51b5; border-radius: 6px;
-            display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; color: #3f51b5;
+            width: 45px; height: 65px; background: white; border: 2px solid #3f51b5; border-radius: 6px;
+            display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: bold; color: #3f51b5;
             cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s;
         }
         .mind-card:hover { transform: translateY(-5px); background: #e8eaf6; }
@@ -234,24 +234,32 @@
     <!-- 🧠 더 마인드 실전 게임 모달창 -->
     <div id="mindGameModal" class="modal hidden">
         <div class="modal-content dino-content" style="width: 420px; text-align: center;">
-            <h2 id="mindGameTitle" style="margin: 0; font-size: 16px;">🧠 더 마인드 실전 협동</h2>
-            <div id="mindStatusBox" style="font-size: 13px; font-weight: bold; color: #3f51b5; background: #e8eaf6; padding: 8px; border-radius: 6px; margin-top: 5px;">
+            <h2 id="mindGameTitle" style="margin: 0; font-size: 15px;">🧠 더 마인드 실전 협동</h2>
+            <div id="mindStatusBox" style="font-size: 12px; font-weight: bold; color: #3f51b5; background: #e8eaf6; padding: 6px; border-radius: 6px; margin-top: 4px;">
                 레벨 <span id="mindLevelNum">1</span> | 남은 생명 ❤️ <span id="mindLifeCount">3</span> | 남은 수리검 ⭐️ <span id="mindShurikenCount">1</span>
             </div>
 
-            <div style="background: #fff; border: 2px dashed #3f51b5; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">중앙 제출 카드 판</p>
-                <div id="mindCenterCard" style="font-size: 36px; font-weight: bold; color: #3f51b5; min-height: 50px;">-</div>
+            <div style="background: #fff; border: 2px dashed #3f51b5; padding: 10px; border-radius: 8px; margin: 6px 0;">
+                <p style="margin: 0 0 2px 0; font-size: 11px; color: #666;">중앙 제출 카드 판</p>
+                <div id="mindCenterCard" style="font-size: 30px; font-weight: bold; color: #3f51b5; min-height: 40px;">-</div>
             </div>
 
-            <p style="margin: 5px 0; font-size: 13px; font-weight: bold;">내 손에 든 카드 (클릭하여 중앙에 제출):</p>
+            <p style="margin: 3px 0; font-size: 12px; font-weight: bold;">내 손에 든 카드 (클릭하여 중앙에 제출):</p>
             <div id="mindMyHand" class="mind-hand"></div>
 
-            <div class="modal-buttons" style="margin-top: 10px;">
-                <button id="mindUseShurikenBtn" style="background-color: #ff9800; color: white; width: 100%; padding: 8px; font-size: 13px;">⭐️ 수리검 사용 (가장 낮은 카드 버리기)</button>
+            <!-- 🌟 [요청 반영] 게임 중 실시간 채팅창 추가 -->
+            <div style="text-align: left; font-size: 12px; font-weight: bold; color: #3f51b5; margin-top: 4px;">💬 게임 중 팀원 소통 채팅</div>
+            <div id="mindGameChatMessages" class="chat-messages" style="height: 90px;"></div>
+            <div class="chat-input-area">
+                <input type="text" id="mindGameChatInput" placeholder="채팅 입력..." style="flex: 1; padding: 6px; font-size: 12px;">
+                <button id="mindGameChatSendBtn" style="background-color: #2196F3; color: white; border: none; border-radius: 4px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">전송</button>
             </div>
-            <div class="modal-buttons" style="margin-top: 5px;">
-                <button class="close-btn" style="width: 100%; background-color: #757575; font-size: 12px;" onclick="leaveMindGame()">게임 포기 및 나가기</button>
+
+            <div class="modal-buttons" style="margin-top: 6px;">
+                <button id="mindUseShurikenBtn" style="background-color: #ff9800; color: white; width: 100%; padding: 6px; font-size: 12px;">⭐️ 수리검 사용 (가장 낮은 카드 버리기)</button>
+            </div>
+            <div class="modal-buttons" style="margin-top: 4px;">
+                <button class="close-btn" style="width: 100%; background-color: #757575; font-size: 11px; padding: 6px;" onclick="leaveMindGame()">게임 포기 및 나가기</button>
             </div>
         </div>
     </div>
@@ -777,7 +785,7 @@
                 if (roomData.status === 'ended' || playerKeys.length === 0) {
                     await roomRef.remove();
                 } else if (playerKeys.length >= 7 && !players[name]) {
-                    return alert("방 인원이 가득 찼습니다 (최대 7인)!");
+                    return alert("방 인원이 가득 찼습니다 (최대 7명)!");
                 }
 
                 mindRoomCode = roomCode;
@@ -814,28 +822,45 @@
                 closeModal('mindGameModal');
             };
 
-            function sendMindChatMessage() {
+            // 대기실 채팅 전송
+            function sendMindLobbyChatMessage() {
                 const inputElem = document.getElementById('mindChatInput');
                 const text = inputElem.value.trim();
                 if (!text || !mindRoomChatRef) return;
                 mindRoomChatRef.push({ name: mindNickname, text: text, timestamp: Date.now() });
                 inputElem.value = '';
             }
+            document.getElementById('mindChatSendBtn')?.addEventListener('click', sendMindLobbyChatMessage);
+            document.getElementById('mindChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMindLobbyChatMessage(); });
 
-            document.getElementById('mindChatSendBtn')?.addEventListener('click', sendMindChatMessage);
-            document.getElementById('mindChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMindChatMessage(); });
+            // 🌟 [추가] 게임 중 실시간 채팅 전송
+            function sendMindGameChatMessage() {
+                const inputElem = document.getElementById('mindGameChatInput');
+                const text = inputElem.value.trim();
+                if (!text || !mindRoomChatRef) return;
+                mindRoomChatRef.push({ name: mindNickname, text: text, timestamp: Date.now() });
+                inputElem.value = '';
+            }
+            document.getElementById('mindGameChatSendBtn')?.addEventListener('click', sendMindGameChatMessage);
+            document.getElementById('mindGameChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMindGameChatMessage(); });
 
             function listenMindChat() {
                 if (!mindRoomChatRef) return;
                 mindRoomChatRef.limitToLast(30).on('value', (snapshot) => {
-                    const chatBox = document.getElementById('mindChatMessages');
-                    if (chatBox) chatBox.innerHTML = '';
+                    const lobbyBox = document.getElementById('mindChatMessages');
+                    const gameBox = document.getElementById('mindGameChatMessages');
+                    if (lobbyBox) lobbyBox.innerHTML = '';
+                    if (gameBox) gameBox.innerHTML = '';
+
                     const data = snapshot.val();
                     if (data) {
                         Object.values(data).forEach(msg => {
-                            chatBox.innerHTML += `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                            const chatHtml = `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                            if (lobbyBox) lobbyBox.innerHTML += chatHtml;
+                            if (gameBox) gameBox.innerHTML += chatHtml;
                         });
-                        chatBox.scrollTop = chatBox.scrollHeight;
+                        if (lobbyBox) lobbyBox.scrollTop = lobbyBox.scrollHeight;
+                        if (gameBox) gameBox.scrollTop = gameBox.scrollHeight;
                     }
                 });
             }
@@ -967,7 +992,6 @@
                         });
                         return;
                     } else {
-                        // 🌟 [수정 완료] 실수 후 깎인 생명(currentLives) 값을 데이터베이스에 정확히 저장하고 레벨은 그대로 유지
                         await mindRoomRef.update({
                             lives: currentLives,
                             centerCard: cardVal,
@@ -1004,7 +1028,6 @@
                         });
                     } else {
                         alert(`🎉 레벨 ${data.level} 클리어! 다음 레벨(${nextLevel})로 진입합니다.`);
-                        // 🌟 [수정 완료] 다음 레벨로 넘어갈 때 깎였던 생명(currentLives)과 수리검 개수가 온전하게 연계되어 유지됨!
                         startMindLevel(nextLevel, currentLives, data.shurikens, allPlayers);
                     }
                 }
