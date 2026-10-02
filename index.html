@@ -192,7 +192,6 @@
             <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 7명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="mindRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
-                <!-- 🌟 [복구 완료] 더 마인드 랜덤 생성 버튼 ID -->
                 <button id="mindRandomRoomBtn" style="background-color: #3f51b5; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="mindNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
@@ -285,7 +284,6 @@
             <p style="font-size: 13px; color: #666;">방 코드를 만들거나 입력하여 대기실로 입장하세요! (최대 8명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="vegasRoomCode" placeholder="방 코드 입력" style="flex: 1; text-transform: uppercase;">
-                <!-- 🌟 [복구 완료] 라스베가스 랜덤 생성 버튼 ID -->
                 <button id="randomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="vegasNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
@@ -483,6 +481,7 @@
             <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 친구와 대결하세요! (최대 2명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="alkaRoomCode" placeholder="방 코드 입력" style="flex: 1;">
+                <!-- 🌟 [복구 완료] 알까기 랜덤 생성 버튼 ID -->
                 <button id="alkaRandomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="alkaNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
@@ -1052,7 +1051,6 @@
                 if (alertBox) alertBox.style.display = 'none';
             }
 
-            // 카드를 낼 때의 엄격한 더 마인드 검증 로직
             window.playMindCard = async function(cardVal, data) {
                 stopMindTimer();
                 const hands = data.hands || {};
@@ -1160,6 +1158,215 @@
                 });
                 checkOnlyLevelClear(data, hands, data.lives, activePlayers);
             });
+
+            // --- ⚪ 알까기 온라인 방 시스템 ---
+            let alkaRoomCode = "";
+            let alkaNickname = "";
+            let alkaRoomRef = null;
+
+            // 🌟 알까기 랜덤 생성 버튼 바인딩 복구
+            document.getElementById('alkaRandomRoomBtn')?.addEventListener('click', () => {
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                let randomCode = "";
+                for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+                document.getElementById('alkaRoomCode').value = randomCode;
+            });
+
+            document.getElementById('joinAlkaRoomBtn')?.addEventListener('click', async () => {
+                const roomCode = document.getElementById('alkaRoomCode').value.trim().toUpperCase();
+                const name = document.getElementById('alkaNickname').value.trim();
+                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
+
+                const roomRef = rtdb.ref(`alka_rooms/${roomCode}`);
+                const snap = await roomRef.once('value');
+                const roomData = snap.val() || {};
+
+                if (roomData.status === 'playing') {
+                    return alert("이미 게임이 진행 중인 방입니다!");
+                }
+
+                const players = roomData.players || {};
+                const playerKeys = Object.keys(players);
+
+                if (roomData.status === 'ended' || playerKeys.length === 0) {
+                    await roomRef.remove();
+                } else if (playerKeys.length >= 2 && !players[name]) {
+                    return alert("방 인원이 가득 찼습니다 (최대 2인)!");
+                }
+
+                alkaRoomCode = roomCode;
+                alkaNickname = name;
+                alkaRoomRef = roomRef;
+
+                await roomRef.child(`players/${alkaNickname}`).set(true);
+
+                closeModal('alkaLoginModal');
+                document.getElementById('alkaLobbyTitle').innerText = `⚪ 알까기 대기실 [방: ${alkaRoomCode}]`;
+                openModal('alkaLobbyModal');
+                listenAlkaRoom();
+            });
+
+            document.getElementById('copyAlkaCodeBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(alkaRoomCode).then(() => {
+                    alert(`방 코드 [${alkaRoomCode}] 복사 완료!`);
+                });
+            });
+
+            window.leaveAlkaLobby = function() {
+                if (alkaRoomRef && alkaNickname) {
+                    alkaRoomRef.child(`players/${alkaNickname}`).remove();
+                    alkaRoomRef.off();
+                }
+                closeModal('alkaLobbyModal');
+            };
+
+            window.leaveAlkaGame = function() {
+                leaveAlkaLobby();
+                closeModal('alkaGameModal');
+            };
+
+            document.getElementById('startAlkaGameBtn')?.addEventListener('click', async () => {
+                const snap = await alkaRoomRef.once('value');
+                const data = snap.val() || {};
+                const players = Object.keys(data.players || {});
+                if (players.length < 2) return alert("상대방이 입장해야 게임을 시작할 수 있습니다!");
+
+                const shuffled = [...players].sort(() => Math.random() - 0.5);
+                await alkaRoomRef.update({
+                    status: 'playing',
+                    turn: shuffled[0],
+                    stones: {
+                        [shuffled[0]]: [{x: 80, y: 170}, {x: 120, y: 130}, {x: 120, y: 210}],
+                        [shuffled[1]]: [{x: 260, y: 170}, {x: 220, y: 130}, {x: 220, y: 210}]
+                    }
+                });
+            });
+
+            function listenAlkaRoom() {
+                if (!alkaRoomRef) return;
+                alkaRoomRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) return;
+
+                    const playersObj = data.players || {};
+                    const playerNames = Object.keys(playersObj);
+                    let listHtml = "";
+                    playerNames.forEach(p => {
+                        listHtml += `<li>${p} ${p === alkaNickname ? '(나)' : ''}</li>`;
+                    });
+                    document.getElementById('alkaPlayersList').innerHTML = listHtml;
+
+                    if (data.status === 'playing') {
+                        if (!document.getElementById('alkaLobbyModal').classList.contains('hidden')) {
+                            closeModal('alkaLobbyModal');
+                            openModal('alkaGameModal');
+                        }
+                        updateAlkaGameScreen(data);
+                    }
+                });
+            }
+
+            const alkaCanvas = document.getElementById('alkaGameCanvas');
+            let isDraggingAlka = false, dragStartAlka = null, selectedAlkaStone = null;
+
+            if (alkaCanvas) {
+                const aCtx = alkaCanvas.getContext('2d');
+                alkaCanvas.addEventListener('mousedown', (e) => {
+                    alkaRoomRef.once('value', (snap) => {
+                        const data = snap.val();
+                        if (!data || data.turn !== alkaNickname) return;
+                        const rect = alkaCanvas.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
+
+                        const myStones = data.stones?.[alkaNickname] || [];
+                        myStones.forEach((st, idx) => {
+                            let dist = Math.hypot(st.x - mouseX, st.y - mouseY);
+                            if (dist < 15) {
+                                isDraggingAlka = true;
+                                selectedAlkaStone = idx;
+                                dragStartAlka = {x: mouseX, y: mouseY};
+                            }
+                        });
+                    });
+                });
+
+                alkaCanvas.addEventListener('mouseup', (e) => {
+                    if (!isDraggingAlka) return;
+                    const rect = alkaCanvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    alkaRoomRef.once('value', async (snap) => {
+                        const data = snap.val();
+                        if (!data) return;
+                        let stones = data.stones;
+                        let myStones = stones[alkaNickname];
+                        let st = myStones[selectedAlkaStone];
+
+                        let dx = dragStartAlka.x - mouseX;
+                        let dy = dragStartAlka.y - mouseY;
+                        let power = Math.min(15, Math.hypot(dx, dy) * 0.2);
+                        let angle = Math.atan2(dy, dx);
+
+                        st.x += Math.cos(angle) * power * 10;
+                        st.y += Math.sin(angle) * power * 10;
+
+                        // 상대방 찾기
+                        const players = Object.keys(data.players);
+                        const opponent = players.find(p => p !== alkaNickname);
+                        let oppStones = stones[opponent] || [];
+
+                        // 충돌 및 장외 처리 간단 반영
+                        stones[alkaNickname] = myStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
+                        stones[opponent] = oppStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
+
+                        let nextTurn = opponent;
+                        if (stones[opponent].length === 0) {
+                            await alkaRoomRef.update({ status: 'ended', winner: alkaNickname });
+                        } else if (stones[alkaNickname].length === 0) {
+                            await alkaRoomRef.update({ status: 'ended', winner: opponent });
+                        } else {
+                            await alkaRoomRef.update({ stones: stones, turn: nextTurn });
+                        }
+
+                        isDraggingAlka = false;
+                        selectedAlkaStone = null;
+                    });
+                });
+            }
+
+            function updateAlkaGameScreen(data) {
+                if (data.status === 'ended') {
+                    closeModal('alkaGameModal');
+                    document.getElementById('alkaResultText').innerText = `🏆 승리자: ${data.winner}님!`;
+                    openModal('alkaResultModal');
+                    return;
+                }
+
+                const isMyTurn = data.turn === alkaNickname;
+                document.getElementById('alkaTurnBox').innerText = isMyTurn ? "🔥 [ 내 턴입니다! 내 돌을 드래그하여 날리세요 ]" : `⏳ 상대방(${data.turn}) 턴 대기 중...`;
+                document.getElementById('alkaTurnBox').style.backgroundColor = isMyTurn ? "#e8f5e9" : "#fff8e1";
+
+                if (alkaCanvas) {
+                    const aCtx = alkaCanvas.getContext('2d');
+                    aCtx.clearRect(0, 0, 340, 340);
+
+                    const stones = data.stones || {};
+                    Object.keys(stones).forEach(p => {
+                        stones[p].forEach(st => {
+                            aCtx.beginPath();
+                            aCtx.arc(st.x, st.y, 14, 0, Math.PI * 2);
+                            aCtx.fillStyle = (p === alkaNickname) ? "#2196F3" : "#f44336";
+                            aCtx.fill();
+                            aCtx.lineWidth = 2;
+                            aCtx.strokeStyle = "#333";
+                            aCtx.stroke();
+                            aCtx.closePath();
+                        });
+                    });
+                }
+            }
 
             // --- 회원가입 및 미니게임 구동 ---
             document.getElementById('submitSignup')?.addEventListener('click', async () => {
