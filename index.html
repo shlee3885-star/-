@@ -104,7 +104,7 @@
         .ranking-item.top-rank { background-color: #fffde7; border-color: #ffd54f; }
 
         #dinoCanvas, #brickCanvas, #flappyCanvas, #snakeCanvas, #alkaGameCanvas {
-            background-color: #f7f7f7; border: 2px solid #ccc; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
+            background-color: #e3d3b3; border: 2px solid #8b5a2b; border-radius: 5px; display: block; margin: 10px auto; cursor: pointer;
         }
 
         .memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px auto; width: 320px; height: 320px; }
@@ -1158,7 +1158,7 @@
                 checkOnlyLevelClear(data, hands, data.lives, activePlayers);
             });
 
-            // --- ⚪ 알까기 온라인 방 시스템 ---
+            // --- ⚪ 알까기 온라인 방 시스템 및 물리 충돌/가이드라인 개선 ---
             let alkaRoomCode = "";
             let alkaNickname = "";
             let alkaRoomRef = null;
@@ -1230,12 +1230,17 @@
                 if (players.length < 2) return alert("상대방이 입장해야 게임을 시작할 수 있습니다!");
 
                 const shuffled = [...players].sort(() => Math.random() - 0.5);
+                // 첫 번째 플레이어(방장): 흑돌(black), 두 번째 플레이어: 백돌(white)
                 await alkaRoomRef.update({
                     status: 'playing',
                     turn: shuffled[0],
+                    roles: {
+                        [shuffled[0]]: 'black',
+                        [shuffled[1]]: 'white'
+                    },
                     stones: {
-                        [shuffled[0]]: [{x: 80, y: 170}, {x: 120, y: 130}, {x: 120, y: 210}],
-                        [shuffled[1]]: [{x: 260, y: 170}, {x: 220, y: 130}, {x: 220, y: 210}]
+                        [shuffled[0]]: [{x: 90, y: 170, vx: 0, vy: 0}, {x: 130, y: 130, vx: 0, vy: 0}, {x: 130, y: 210, vx: 0, vy: 0}],
+                        [shuffled[1]]: [{x: 250, y: 170, vx: 0, vy: 0}, {x: 210, y: 130, vx: 0, vy: 0}, {x: 210, y: 210, vx: 0, vy: 0}]
                     }
                 });
             });
@@ -1265,7 +1270,7 @@
             }
 
             const alkaCanvas = document.getElementById('alkaGameCanvas');
-            let isDraggingAlka = false, dragStartAlka = null, selectedAlkaStone = null;
+            let isDraggingAlka = false, dragStartAlka = null, currentMouseAlka = null, selectedAlkaStone = null;
 
             if (alkaCanvas) {
                 const aCtx = alkaCanvas.getContext('2d');
@@ -1280,13 +1285,23 @@
                         const myStones = data.stones?.[alkaNickname] || [];
                         myStones.forEach((st, idx) => {
                             let dist = Math.hypot(st.x - mouseX, st.y - mouseY);
-                            if (dist < 15) {
+                            if (dist < 16) {
                                 isDraggingAlka = true;
                                 selectedAlkaStone = idx;
                                 dragStartAlka = {x: mouseX, y: mouseY};
+                                currentMouseAlka = {x: mouseX, y: mouseY};
                             }
                         });
                     });
+                });
+
+                alkaCanvas.addEventListener('mousemove', (e) => {
+                    if (!isDraggingAlka) return;
+                    const rect = alkaCanvas.getBoundingClientRect();
+                    currentMouseAlka = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
                 });
 
                 alkaCanvas.addEventListener('mouseup', (e) => {
@@ -1302,32 +1317,105 @@
                         let myStones = stones[alkaNickname];
                         let st = myStones[selectedAlkaStone];
 
+                        // 뒤로 당긴 방향의 반대(앞쪽)로 발사 벡터 계산
                         let dx = dragStartAlka.x - mouseX;
                         let dy = dragStartAlka.y - mouseY;
-                        let power = Math.min(15, Math.hypot(dx, dy) * 0.2);
+                        let pullDist = Math.hypot(dx, dy);
+                        let power = Math.min(18, pullDist * 0.25);
                         let angle = Math.atan2(dy, dx);
 
-                        st.x += Math.cos(angle) * power * 10;
-                        st.y += Math.sin(angle) * power * 10;
+                        st.vx = Math.cos(angle) * power;
+                        st.vy = Math.sin(angle) * power;
 
+                        // 물리 시뮬레이션 (충돌 및 반사 루프)
                         const players = Object.keys(data.players);
+                        let allStones = [];
+                        players.forEach(p => {
+                            (stones[p] || []).forEach((s, sIdx) => {
+                                allStones.push({ player: p, index: sIdx, x: s.x, y: s.y, vx: s.vx || 0, vy: s.vy || 0 });
+                            });
+                        });
+
+                        // 메인 발사돌에 초기 속도 부여
+                        let activeTarget = allStones.find(s => s.player === alkaNickname && s.index === selectedAlkaStone);
+                        if (activeTarget) {
+                            activeTarget.vx = st.vx;
+                            activeTarget.vy = st.vy;
+                        }
+
+                        // 간단한 다중 충돌 및 마찰 시뮬레이션 프레임
+                        for (let step = 0; step < 40; step++) {
+                            allStones.forEach(s => {
+                                s.x += s.vx;
+                                s.y += s.vy;
+                                s.vx *= 0.95; // 마찰력 감속
+                                s.vy *= 0.95;
+
+                                // 벽 충돌 처리 (테두리 반사 또는 장외)
+                                if (s.x < 15) { s.x = 15; s.vx *= -0.7; }
+                                if (s.x > 325) { s.x = 325; s.vx *= -0.7; }
+                                if (s.y < 15) { s.y = 15; s.vy *= -0.7; }
+                                if (s.y > 325) { s.y = 325; s.vy *= -0.7; }
+                            });
+
+                            // 돌끼리 충돌 처리
+                            for (let i = 0; i < allStones.length; i++) {
+                                for (let j = i + 1; j < allStones.length; j++) {
+                                    let s1 = allStones[i];
+                                    let s2 = allStones[j];
+                                    let dist = Math.hypot(s1.x - s2.x, s1.y - s2.y);
+                                    let minDist = 30; // 돌 지름 30 (반지름 15)
+                                    if (dist < minDist && dist > 0) {
+                                        let overlap = (minDist - dist) / 2;
+                                        let nx = (s2.x - s1.x) / dist;
+                                        let ny = (s2.y - s1.y) / dist;
+
+                                        // 위치 겹침 해제
+                                        s1.x -= nx * overlap;
+                                        s1.y -= ny * overlap;
+                                        s2.x += nx * overlap;
+                                        s2.y += ny * overlap;
+
+                                        // 속도 교환 (탄성 충돌)
+                                        let kx = s1.vx - s2.vx;
+                                        let ky = s1.vy - s2.vy;
+                                        let p = 2 * (nx * kx + ny * ky) / 2;
+                                        s1.vx -= p * nx * 0.85;
+                                        s1.vy -= p * ny * 0.85;
+                                        s2.vx += p * nx * 0.85;
+                                        s2.vy += p * ny * 0.85;
+                                    }
+                                }
+                            }
+                        }
+
+                        // 결과 반영 (보드 판 밖으로 나간 돌 제거)
+                        let newStones = {};
+                        players.forEach(p => {
+                            newStones[p] = [];
+                        });
+
+                        allStones.forEach(s => {
+                            // 캔버스 범위 내(0~340)에 있는 돌만 유지
+                            if (s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340) {
+                                newStones[s.player].push({ x: s.x, y: s.y, vx: 0, vy: 0 });
+                            }
+                        });
+
                         const opponent = players.find(p => p !== alkaNickname);
-                        let oppStones = stones[opponent] || [];
-
-                        stones[alkaNickname] = myStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
-                        stones[opponent] = oppStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
-
                         let nextTurn = opponent;
-                        if (stones[opponent].length === 0) {
-                            await alkaRoomRef.update({ status: 'ended', winner: alkaNickname });
-                        } else if (stones[alkaNickname].length === 0) {
-                            await alkaRoomRef.update({ status: 'ended', winner: opponent });
+
+                        if (newStones[opponent].length === 0) {
+                            await alkaRoomRef.update({ status: 'ended', winner: alkaNickname, stones: newStones });
+                        } else if (newStones[alkaNickname].length === 0) {
+                            await alkaRoomRef.update({ status: 'ended', winner: opponent, stones: newStones });
                         } else {
-                            await alkaRoomRef.update({ stones: stones, turn: nextTurn });
+                            await alkaRoomRef.update({ stones: newStones, turn: nextTurn });
                         }
 
                         isDraggingAlka = false;
                         selectedAlkaStone = null;
+                        currentMouseAlka = null;
                     });
                 });
             }
@@ -1341,24 +1429,78 @@
                 }
 
                 const isMyTurn = data.turn === alkaNickname;
-                document.getElementById('alkaTurnBox').innerText = isMyTurn ? "🔥 [ 내 턴입니다! 내 돌을 드래그하여 날리세요 ]" : `⏳ 상대방(${data.turn}) 턴 대기 중...`;
+                document.getElementById('alkaTurnBox').innerText = isMyTurn ? "🔥 [ 내 턴입니다! 내 바둑알을 당겨서 발사하세요 ]" : `⏳ 상대방(${data.turn}) 턴 대기 중...`;
                 document.getElementById('alkaTurnBox').style.backgroundColor = isMyTurn ? "#e8f5e9" : "#fff8e1";
 
                 if (alkaCanvas) {
                     const aCtx = alkaCanvas.getContext('2d');
                     aCtx.clearRect(0, 0, 340, 340);
 
+                    // 바둑판 눈금 스타일 그리기
+                    aCtx.strokeStyle = "#a57c52";
+                    aCtx.lineWidth = 1;
+                    for (let i = 40; i < 340; i += 50) {
+                        aCtx.beginPath(); aCtx.moveTo(i, 20); aCtx.lineTo(i, 320); aCtx.stroke();
+                        aCtx.beginPath(); aCtx.moveTo(20, i); aCtx.lineTo(320, i); aCtx.stroke();
+                    }
+
                     const stones = data.stones || {};
+                    const roles = data.roles || {};
+
                     Object.keys(stones).forEach(p => {
-                        stones[p].forEach(st => {
+                        let isBlack = (roles[p] === 'black');
+                        stones[p].forEach((st, idx) => {
                             aCtx.beginPath();
-                            aCtx.arc(st.x, st.y, 14, 0, Math.PI * 2);
-                            aCtx.fillStyle = (p === alkaNickname) ? "#2196F3" : "#f44336";
+                            aCtx.arc(st.x, st.y, 15, 0, Math.PI * 2);
+                            
+                            // 바둑알 그라데이션 UI
+                            let grad = aCtx.createRadialGradient(st.x - 4, st.y - 4, 2, st.x, st.y, 15);
+                            if (isBlack) {
+                                grad.addColorStop(0, '#555');
+                                grad.addColorStop(1, '#111');
+                            } else {
+                                grad.addColorStop(0, '#fff');
+                                grad.addColorStop(1, '#d0d0d0');
+                            }
+                            aCtx.fillStyle = grad;
                             aCtx.fill();
-                            aCtx.lineWidth = 2;
-                            aCtx.strokeStyle = "#333";
+                            aCtx.lineWidth = 1.5;
+                            aCtx.strokeStyle = isBlack ? '#000' : '#999';
                             aCtx.stroke();
                             aCtx.closePath();
+
+                            // 드래그 중인 내 돌일 경우: 세기와 방향을 나타내는 가이드 화살표 표시 (앞쪽 방향으로 가리킴)
+                            if (isDraggingAlka && p === alkaNickname && idx === selectedAlkaStone && currentMouseAlka) {
+                                let stObj = stones[alkaNickname][selectedAlkaStone];
+                                // 당긴 방향 (마우스 위치 -> 돌 위치)의 반대 벡터가 날아가는 앞쪽 방향임
+                                let dx = currentMouseAlka.x - stObj.x;
+                                let dy = currentMouseAlka.y - stObj.y;
+                                let angle = Math.atan2(dy, dx);
+                                let powerDist = Math.min(100, Math.hypot(dx, dy));
+
+                                if (powerDist > 5) {
+                                    // 조준 가이드 선
+                                    aCtx.beginPath();
+                                    aCtx.moveTo(stObj.x, stObj.y);
+                                    let targetX = stObj.x + Math.cos(angle) * powerDist * 1.5;
+                                    let targetY = stObj.y + Math.sin(angle) * powerDist * 1.5;
+                                    aCtx.lineTo(targetX, targetY);
+                                    aCtx.strokeStyle = "rgba(211, 47, 47, 0.8)";
+                                    aCtx.lineWidth = 3;
+                                    aCtx.setLineDash([4, 4]);
+                                    aCtx.stroke();
+                                    aCtx.setLineDash([]); // 대시 초기화
+
+                                    // 화살표 머리 그리기
+                                    aCtx.beginPath();
+                                    aCtx.moveTo(targetX, targetY);
+                                    aCtx.lineTo(targetX - 10 * Math.cos(angle - Math.PI / 6), targetY - 10 * Math.sin(angle - Math.PI / 6));
+                                    aCtx.lineTo(targetX - 10 * Math.cos(angle + Math.PI / 6), targetY - 10 * Math.sin(angle + Math.PI / 6));
+                                    aCtx.fillStyle = "#d32f2f";
+                                    aCtx.fill();
+                                    aCtx.closePath();
+                                }
+                            }
                         });
                     });
                 }
@@ -1566,7 +1708,7 @@
                 });
             }
 
-            // 3. 플래피 버드 (스페이스바 조작 추가 완료)
+            // 3. 플래피 버드
             const flappyCanvas = document.getElementById('flappyCanvas');
             if (flappyCanvas) {
                 const fCtx = flappyCanvas.getContext('2d');
@@ -1590,14 +1732,13 @@
                     if(bird.y+bird.radius >= 400 || bird.y-bird.radius <= 0){ gameOverFlappy(); }
                 }
 
-                // 점프 동작 함수 및 스페이스바 리스너 추가
                 const doFlappyJump = () => {
                     if (isFlappyPlaying) bird.velocity = bird.jump;
                 };
 
                 document.addEventListener('keydown', (e) => {
                     if (e.code === 'Space' && !document.getElementById('flappyModal').classList.contains('hidden')) {
-                        e.preventDefault(); // 스페이스바 누를 시 스크롤 방지
+                        e.preventDefault();
                         doFlappyJump();
                     }
                 });
