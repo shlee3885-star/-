@@ -481,7 +481,6 @@
             <p style="font-size: 13px; color: #666;">방 코드를 입력하거나 생성하여 친구와 대결하세요! (최대 2명)</p>
             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                 <input type="text" id="alkaRoomCode" placeholder="방 코드 입력" style="flex: 1;">
-                <!-- 🌟 [복구 완료] 알까기 랜덤 생성 버튼 ID -->
                 <button id="alkaRandomRoomBtn" style="background-color: #607d8b; color: white; border: none; border-radius: 5px; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: bold;">랜덤 생성</button>
             </div>
             <input type="text" id="alkaNickname" placeholder="내 닉네임 입력" style="margin-bottom: 10px;">
@@ -566,7 +565,7 @@
     <div id="flappyModal" class="modal hidden">
         <div class="modal-content dino-content">
             <h2>🐦 플래피 버드</h2>
-            <p>화면을 클릭하여 파이프를 피하세요!</p>
+            <p>스페이스바 또는 화면을 클릭하여 파이프를 피하세요!</p>
             <canvas id="flappyCanvas" width="300" height="400"></canvas>
             <h3 id="flappyScore">Score: 0</h3>
             <div class="modal-buttons" style="justify-content: center; gap: 10px;">
@@ -614,7 +613,7 @@
 
         try { if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); } } catch (e) { }
 
-        const db = firebase.firestore();      
+        const db = firebase.firestore();     
         const rtdb = firebase.database();     
 
         const games = [
@@ -1070,7 +1069,7 @@
 
                 if (lowerCardExists) {
                     let currentLives = data.lives - 1;
-                    alert(`앗! 실수했습니다! (${mindNickname}님이 낸 카드: ${cardVal}) 팀원 중에 더 낮은 카드를 가진 사람이 있었습니다! 생명 -1 ❤️️`);
+                    alert(`앗! 실수했습니다! (${mindNickname}님이 낸 카드: ${cardVal}) 팀원 중에 더 낮은 카드를 가진 사람이 있었습니다! 생명 -1 ❤`);
 
                     for (let p of activePlayers) {
                         if (hands[p]) {
@@ -1164,7 +1163,6 @@
             let alkaNickname = "";
             let alkaRoomRef = null;
 
-            // 🌟 알까기 랜덤 생성 버튼 바인딩 복구
             document.getElementById('alkaRandomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
                 let randomCode = "";
@@ -1312,12 +1310,10 @@
                         st.x += Math.cos(angle) * power * 10;
                         st.y += Math.sin(angle) * power * 10;
 
-                        // 상대방 찾기
                         const players = Object.keys(data.players);
                         const opponent = players.find(p => p !== alkaNickname);
                         let oppStones = stones[opponent] || [];
 
-                        // 충돌 및 장외 처리 간단 반영
                         stones[alkaNickname] = myStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
                         stones[opponent] = oppStones.filter(s => s.x >= 0 && s.x <= 340 && s.y >= 0 && s.y <= 340);
 
@@ -1570,7 +1566,7 @@
                 });
             }
 
-            // 3. 플래피 버드
+            // 3. 플래피 버드 (스페이스바 조작 추가 완료)
             const flappyCanvas = document.getElementById('flappyCanvas');
             if (flappyCanvas) {
                 const fCtx = flappyCanvas.getContext('2d');
@@ -1593,8 +1589,33 @@
                     });
                     if(bird.y+bird.radius >= 400 || bird.y-bird.radius <= 0){ gameOverFlappy(); }
                 }
-                flappyCanvas.addEventListener('mousedown', () => { if(isFlappyPlaying) bird.velocity = bird.jump; });
-                document.getElementById('startFlappy')?.addEventListener('click', () => { if(isFlappyPlaying) return; cancelAnimationFrame(flappyAnimation); bird.y=150; bird.velocity=0; pipes=[]; flappyScore=0; frames=0; document.getElementById('flappyScore').innerText=`Score: 0`; isFlappyPlaying=true; flappyLoop(); });
+
+                // 점프 동작 함수 및 스페이스바 리스너 추가
+                const doFlappyJump = () => {
+                    if (isFlappyPlaying) bird.velocity = bird.jump;
+                };
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && !document.getElementById('flappyModal').classList.contains('hidden')) {
+                        e.preventDefault(); // 스페이스바 누를 시 스크롤 방지
+                        doFlappyJump();
+                    }
+                });
+
+                flappyCanvas.addEventListener('mousedown', doFlappyJump);
+
+                document.getElementById('startFlappy')?.addEventListener('click', () => { 
+                    if(isFlappyPlaying) return; 
+                    cancelAnimationFrame(flappyAnimation); 
+                    bird.y=150; 
+                    bird.velocity=0; 
+                    pipes=[]; 
+                    flappyScore=0; 
+                    frames=0; 
+                    document.getElementById('flappyScore').innerText=`Score: 0`; 
+                    isFlappyPlaying=true; 
+                    flappyLoop(); 
+                });
             }
 
             // 4. 스네이크 게임
