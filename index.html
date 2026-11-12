@@ -903,7 +903,7 @@
                 });
             });
 
-            // 주사위 굴리기 버튼 핸들러 (최대 4개 중 남은 개수만큼)
+            // 주사위 굴리기 버튼 핸들러 (최대 4개)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -936,7 +936,7 @@
                 });
             });
 
-            // 🌟 라스베가스 정석 룰: 특정 눈금 그룹을 선택해 배치하면, 남은 주사위들은 버려지는 것이 아니라 다음 내 턴에 다시 굴릴 수 있도록 보존됨!
+            // 🌟 [핵심 수정] 라스베가스 정석 룰: 특정 눈금 그룹을 선택해 배치하면, 남은 주사위들은 버려지는 것이 아니라 다음 내 턴에 다시 굴릴 수 있도록 보존됨!
             window.placeDiceToCasino = async function(diceNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -957,7 +957,7 @@
                 // 해당 카지노 판에 선택한 눈금 주사위들 싹 다 배치
                 casinos[diceNum].bets[vegasNickname] = (casinos[diceNum].bets[vegasNickname] || 0) + matchingDice.length;
 
-                // 🌟 핵심 수정: 선택하고 남은 다른 눈금의 주사위들은 이번 턴에 배치할 수 없으므로, 다시 내 주머니(남은 주사위)로 돌려보내어 다음 내 턴에 다시 굴리게 함!
+                // 🌟 핵심 수정: 선택하지 않은 나머지 주사위들은 이번 턴에 배치할 수 없으므로, 다시 내 주머니(남은 주사위)로 돌려보내어 다음 내 턴에 다시 굴리게 함!
                 let unselectedDice = currentRolls.filter(d => d !== diceNum);
                 let myDiceCounts = data.myDiceCounts || {};
                 myDiceCounts[vegasNickname] = (myDiceCounts[vegasNickname] || 0) + unselectedDice.length;
