@@ -741,7 +741,7 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 라스베가스 방 시스템 및 보드게임 룰 구현 ---
+            // --- 🎲 라스베가스 방 시스템 및 보드게임 정석 룰 구현 ---
             let vegasRoomCode = "";
             let vegasNickname = "";
             let vegasRoomRef = null;
@@ -880,7 +880,7 @@
                 });
             }
 
-            // 게임 시작: 총 4개 주사위 보유로 통일
+            // 게임 시작: 총 4개 주사위 보유
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -903,7 +903,7 @@
                 });
             });
 
-            // 주사위 굴리기 버튼 핸들러 (정확히 4개)
+            // 주사위 굴리기 버튼 핸들러 (최대 4개)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -924,6 +924,7 @@
                     rolled.push(Math.floor(Math.random() * 6) + 1);
                 }
 
+                // 주사위는 굴릴 때 미리 차감
                 let diceCounts = data.myDiceCounts || {};
                 diceCounts[vegasNickname] = myDiceLeft - rollCount;
 
@@ -936,7 +937,7 @@
                 });
             });
 
-            // 카지노 판에 특정 눈금의 주사위를 모두 배치하는 로직
+            // 🌟 카지노 판에 '선택한 눈금의 주사위만' 배치하고 즉시 턴 넘기기 (정석 룰)
             window.placeDiceToCasino = async function(diceNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -954,8 +955,10 @@
                     casinos[diceNum].bets = {};
                 }
                 
+                // 해당 카지노에 선택한 눈금 주사위들 누적 배치
                 casinos[diceNum].bets[vegasNickname] = (casinos[diceNum].bets[vegasNickname] || 0) + matchingDice.length;
 
+                // 선택하지 않은 나머지 주사위들은 '지우지 않고' 그대로 유지 (다음 내 턴에 다시 굴려서 사용)
                 let remainingRolls = currentRolls.filter(d => d !== diceNum);
                 let allRolls = data.currentRolls || {};
                 allRolls[vegasNickname] = remainingRolls;
@@ -968,20 +971,19 @@
                     currentRolls: allRolls
                 };
 
-                if (remainingRolls.length === 0) {
-                    let allDiceExhausted = true;
-                    players.forEach(p => {
-                        let left = (myDiceCounts[p] ?? 4);
-                        let rolls = (allRolls[p] || []).length;
-                        if (left > 0 || rolls > 0) allDiceExhausted = false;
-                    });
+                // 주사위를 배치했으므로 무조건 다음 플레이어로 턴 넘김 (남은 굴린 주사위는 다음 내 턴에 이어서 굴림)
+                let allDiceExhausted = true;
+                players.forEach(p => {
+                    let left = (myDiceCounts[p] ?? 4);
+                    let rolls = (allRolls[p] || []).length;
+                    if (left > 0 || rolls > 0) allDiceExhausted = false;
+                });
 
-                    if (allDiceExhausted) {
-                        updatePayload.status = 'ended';
-                    } else {
-                        let currentIndex = players.indexOf(vegasNickname);
-                        updatePayload.turn = players[(currentIndex + 1) % players.length];
-                    }
+                if (allDiceExhausted) {
+                    updatePayload.status = 'ended';
+                } else {
+                    let currentIndex = players.indexOf(vegasNickname);
+                    updatePayload.turn = players[(currentIndex + 1) % players.length];
                 }
 
                 await vegasRoomRef.update(updatePayload);
@@ -1045,7 +1047,7 @@
                 }
             }
 
-            // 정산 및 결과 창 표시 함수 (문법 오류 교정 완료)
+            // 정산 및 결과 창 표시 함수
             function showVegasResultModal(data) {
                 let scores = {};
                 let players = data.playersList || Object.keys(data.players || {});
