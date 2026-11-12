@@ -916,7 +916,7 @@
                     return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 먼저 배치해주세요.");
                 }
 
-                if (myDiceLeft <= 0) return alert("이번 게임에 사용할 수 있는 주사위(4개)가 모두 소진되었습니다!");
+                if (myDiceLeft <= 0) return alert("이번 게임에 사용할 수 있는 주사위가 모두 소진되었습니다!");
 
                 let rollCount = Math.min(4, myDiceLeft);
                 let rolled = [];
@@ -968,7 +968,6 @@
                     currentRolls: allRolls
                 };
 
-                // 만약 현재 굴린 주사위를 모두 배치했고, 내 남은 주사위도 0개라면 다음 플레이어로 턴 넘김
                 if (remainingRolls.length === 0) {
                     let allDiceExhausted = true;
                     players.forEach(p => {
@@ -978,7 +977,6 @@
                     });
 
                     if (allDiceExhausted) {
-                        // 🌟 모든 플레이어의 주사위가 소진되었을 때 정산 실시!
                         updatePayload.status = 'ended';
                     } else {
                         let currentIndex = players.indexOf(vegasNickname);
@@ -1047,7 +1045,7 @@
                 }
             }
 
-            // 정산 및 결과 창 표시 함수
+            // 정산 및 결과 창 표시 함수 (문법 오류 교정 완료)
             function showVegasResultModal(data) {
                 let scores = {};
                 let players = data.playersList || Object.keys(data.players || {});
@@ -1061,7 +1059,6 @@
                     if (!cData || !cData.bets) continue;
 
                     let bets = cData.bets;
-                    // 플레이어별 주사위 개수 내림차순 정렬 (동점자 처리 규칙 간소화: 개수 많은 순)
                     let sortedBets = Object.keys(bets).map(p => ({ player: p, count: bets[p] })).sort((a, b) => b.count - a.count);
 
                     reportHtml += `<div style="margin-bottom:8px; border-bottom:1px dashed #ddd; padding-bottom:4px;"><strong>카지노 ${i}번 (상금 $${cData.prizes.join()}만)</strong>`;
@@ -1070,16 +1067,16 @@
                         let topPlayer = sortedBets[0].player;
                         let prize = cData.prizes[0] || 40;
                         scores[topPlayer] += prize;
-                        reportHtml += `<br>🥇 1위: ${topPlayer} (${sortedBets[0].count개}) 👉 상금 $${prize}만 획득!`;
+                        reportHtml += `<br>🥇 1위: ${topPlayer} (${sortedBets[0].count}개) 👉 상금 $${prize}만 획득!`;
                     }
                     reportHtml += `</div>`;
                 }
 
-                // 최종 점수 순위 정렬
                 let finalRanking = players.map(p => ({ player: p, score: scores[p] })).sort((a, b) => b.score - a.score);
                 let scoreBoardHtml = `<h3 style="margin-top:0; color:#3f51b5;">💵 최종 상금 정산 결과</h3>`;
+                
                 finalRanking.forEach((item, idx) => {
-                    scoreBoardHtml += `<div class="ranking-item"><span>${idx + 1등: ${item.player}</span><span style="color:#2196F3;">$${item.score}만 달러</span></div>`;
+                    scoreBoardHtml += `<div class="ranking-item"><span>${idx + 1}등: ${item.player}</span><span style="color:#2196F3;">$${item.score}만 달러</span></div>`;
                 });
 
                 scoreBoardHtml += `<hr style="margin:10px 0;"><strong>카지노별 상세 내역:</strong><div style="font-size:12px; margin-top:5px;">${reportHtml}</div>`;
