@@ -885,8 +885,17 @@
                             closeModal('vegasLobbyModal');
                             openModal('vegasGameModal');
                         }
+                        updateVegasGameScreen(data);
                     }
                 });
+            }
+
+            function updateVegasGameScreen(data) {
+                const turnBox = document.getElementById('gameTurnBox');
+                if (!turnBox) return;
+                const isMyTurn = data.turn === vegasNickname;
+                turnBox.innerText = isMyTurn ? "🔥 [ 내 턴입니다! 주사위를 굴리세요 ]" : `⏳ 상대방(${data.turn}) 턴 대기 중...`;
+                turnBox.style.backgroundColor = isMyTurn ? "#e8f5e9" : "#fff8e1";
             }
 
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
