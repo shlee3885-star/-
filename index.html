@@ -903,7 +903,7 @@
                 });
             });
 
-            // 주사위 굴리기 버튼 핸들러 (최대 4개)
+            // 주사위 굴리기 버튼 핸들러 (최대 4개 중 남은 개수만큼)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -913,7 +913,7 @@
                 let currentRolls = (data.currentRolls && data.currentRolls[vegasNickname]) || [];
 
                 if (currentRolls.length > 0) {
-                    return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 먼저 배치해주세요.");
+                    return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 먼저 카지노 판에 배치해주세요.");
                 }
 
                 if (myDiceLeft <= 0) return alert("이번 게임에 사용할 수 있는 주사위가 모두 소진되었습니다!");
@@ -924,7 +924,6 @@
                     rolled.push(Math.floor(Math.random() * 6) + 1);
                 }
 
-                // 주사위는 굴릴 때 미리 차감
                 let diceCounts = data.myDiceCounts || {};
                 diceCounts[vegasNickname] = myDiceLeft - rollCount;
 
@@ -937,7 +936,7 @@
                 });
             });
 
-            // 🌟 카지노 판에 '선택한 눈금의 주사위만' 배치하고 즉시 턴 넘기기 (정석 룰)
+            // 🌟 라스베가스 정석 룰: 특정 눈금 그룹을 선택해 배치하면, 남은 주사위들은 버려지는 것이 아니라 다음 내 턴에 다시 굴릴 수 있도록 보존됨!
             window.placeDiceToCasino = async function(diceNum) {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -955,23 +954,25 @@
                     casinos[diceNum].bets = {};
                 }
                 
-                // 해당 카지노에 선택한 눈금 주사위들 누적 배치
+                // 해당 카지노 판에 선택한 눈금 주사위들 싹 다 배치
                 casinos[diceNum].bets[vegasNickname] = (casinos[diceNum].bets[vegasNickname] || 0) + matchingDice.length;
 
-                // 선택하지 않은 나머지 주사위들은 '지우지 않고' 그대로 유지 (다음 내 턴에 다시 굴려서 사용)
-                let remainingRolls = currentRolls.filter(d => d !== diceNum);
-                let allRolls = data.currentRolls || {};
-                allRolls[vegasNickname] = remainingRolls;
-
+                // 🌟 핵심 수정: 선택하고 남은 다른 눈금의 주사위들은 이번 턴에 배치할 수 없으므로, 다시 내 주머니(남은 주사위)로 돌려보내어 다음 내 턴에 다시 굴리게 함!
+                let unselectedDice = currentRolls.filter(d => d !== diceNum);
                 let myDiceCounts = data.myDiceCounts || {};
+                myDiceCounts[vegasNickname] = (myDiceCounts[vegasNickname] || 0) + unselectedDice.length;
+
+                let allRolls = data.currentRolls || {};
+                allRolls[vegasNickname] = []; // 이번 턴 굴린 목록 초기화
+
                 let players = data.playersList || Object.keys(data.players || {});
-                
                 let updatePayload = {
                     casinos: casinos,
+                    myDiceCounts: myDiceCounts,
                     currentRolls: allRolls
                 };
 
-                // 주사위를 배치했으므로 무조건 다음 플레이어로 턴 넘김 (남은 굴린 주사위는 다음 내 턴에 이어서 굴림)
+                // 모든 플레이어의 주사위가 0개가 되었는지 확인 (내 남은 주사위 + 앞으로 굴릴 주사위 통합 체크)
                 let allDiceExhausted = true;
                 players.forEach(p => {
                     let left = (myDiceCounts[p] ?? 4);
