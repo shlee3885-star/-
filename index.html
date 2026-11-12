@@ -756,12 +756,150 @@
             bindSide('rankSnake', () => fetchAndShowRanking("snake", "스네이크"));
             bindSide('rankMemory', () => fetchAndShowRanking("memory", "카드 짝맞추기"));
 
-            // --- 🎲 라스베가스 무작위 방 코드 생성 버튼 바인딩 추가 ---
+            // --- 🎲 라스베가스 방 시스템 (방 코드 생성 및 대기실 입장 버튼 바인딩 추가) ---
+            let vegasRoomCode = "";
+            let vegasNickname = "";
+            let vegasRoomRef = null;
+            let vegasRoomChatRef = null;
+
             document.getElementById('randomRoomBtn')?.addEventListener('click', () => {
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
                 let randomCode = "";
                 for (let i = 0; i < 6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
                 document.getElementById('vegasRoomCode').value = randomCode;
+            });
+
+            document.getElementById('joinVegasRoomBtn')?.addEventListener('click', async () => {
+                const roomCode = document.getElementById('vegasRoomCode').value.trim().toUpperCase();
+                const name = document.getElementById('vegasNickname').value.trim();
+                if (!roomCode || !name) return alert("방 코드와 닉네임을 모두 입력해주세요!");
+
+                const roomRef = rtdb.ref(`vegas_rooms/${roomCode}`);
+                const snap = await roomRef.once('value');
+                const roomData = snap.val() || {};
+
+                if (roomData.status === 'playing') {
+                    return alert("이미 게임이 진행 중인 방입니다!");
+                }
+
+                const players = roomData.players || {};
+                const playerKeys = Object.keys(players);
+
+                if (roomData.status === 'ended' || playerKeys.length === 0) {
+                    await roomRef.remove();
+                } else if (playerKeys.length >= 8 && !players[name]) {
+                    return alert("방 인원이 가득 찼습니다 (최대 8인)!");
+                }
+
+                vegasRoomCode = roomCode;
+                vegasNickname = name;
+                vegasRoomRef = roomRef;
+                vegasRoomChatRef = rtdb.ref(`vegas_rooms/${roomCode}/chat`);
+
+                await roomRef.child(`players/${vegasNickname}`).set(true);
+
+                closeModal('vegasLoginModal');
+                document.getElementById('lobbyTitle').innerText = `🎲 라스베가스 대기실 [방: ${vegasRoomCode}]`;
+                openModal('vegasLobbyModal');
+                listenVegasRoom();
+                listenVegasChat();
+            });
+
+            document.getElementById('copyLobbyCodeBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(vegasRoomCode).then(() => {
+                    alert(`방 코드 [${vegasRoomCode}] 복사 완료!`);
+                });
+            });
+
+            window.leaveVegasLobby = function() {
+                if (vegasRoomRef && vegasNickname) {
+                    vegasRoomRef.child(`players/${vegasNickname}`).remove();
+                    vegasRoomRef.off();
+                    if (vegasRoomChatRef) vegasRoomChatRef.off();
+                }
+                closeModal('vegasLobbyModal');
+            };
+
+            window.leaveVegasGame = function() {
+                leaveVegasLobby();
+                closeModal('vegasGameModal');
+            };
+
+            function sendVegasLobbyChatMessage() {
+                const inputElem = document.getElementById('roomChatInput');
+                const text = inputElem.value.trim();
+                if (!text || !vegasRoomChatRef) return;
+                vegasRoomChatRef.push({ name: vegasNickname, text: text, timestamp: Date.now() });
+                inputElem.value = '';
+            }
+            document.getElementById('roomChatSendBtn')?.addEventListener('click', sendVegasLobbyChatMessage);
+            document.getElementById('roomChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendVegasLobbyChatMessage(); });
+
+            function sendVegasGameChatMessage() {
+                const inputElem = document.getElementById('gameChatInput');
+                const text = inputElem.value.trim();
+                if (!text || !vegasRoomChatRef) return;
+                vegasRoomChatRef.push({ name: vegasNickname, text: text, timestamp: Date.now() });
+                inputElem.value = '';
+            }
+            document.getElementById('gameChatSendBtn')?.addEventListener('click', sendVegasGameChatMessage);
+            document.getElementById('gameChatInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendVegasGameChatMessage(); });
+
+            function listenVegasChat() {
+                if (!vegasRoomChatRef) return;
+                vegasRoomChatRef.limitToLast(30).on('value', (snapshot) => {
+                    const lobbyBox = document.getElementById('roomChatMessages');
+                    const gameBox = document.getElementById('gameChatMessages');
+                    if (lobbyBox) lobbyBox.innerHTML = '';
+                    if (gameBox) gameBox.innerHTML = '';
+
+                    const data = snapshot.val();
+                    if (data) {
+                        Object.values(data).forEach(msg => {
+                            const chatHtml = `<div class="chat-msg"><span>${msg.name}:</span> ${msg.text}</div>`;
+                            if (lobbyBox) lobbyBox.innerHTML += chatHtml;
+                            if (gameBox) gameBox.innerHTML += chatHtml;
+                        });
+                        if (lobbyBox) lobbyBox.scrollTop = lobbyBox.scrollHeight;
+                        if (gameBox) gameBox.scrollTop = gameBox.scrollHeight;
+                    }
+                });
+            }
+
+            function listenVegasRoom() {
+                if (!vegasRoomRef) return;
+                vegasRoomRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) return;
+
+                    const playersObj = data.players || {};
+                    const playerNames = Object.keys(playersObj);
+                    let listHtml = "";
+                    playerNames.forEach(p => {
+                        listHtml += `<li>${p} ${p === vegasNickname ? '(나)' : ''}</li>`;
+                    });
+                    document.getElementById('lobbyPlayersList').innerHTML = listHtml;
+
+                    if (data.status === 'playing') {
+                        if (!document.getElementById('vegasLobbyModal').classList.contains('hidden')) {
+                            closeModal('vegasLobbyModal');
+                            openModal('vegasGameModal');
+                        }
+                    }
+                });
+            }
+
+            document.getElementById('startGameBtn')?.addEventListener('click', async () => {
+                const snap = await vegasRoomRef.once('value');
+                const data = snap.val() || {};
+                const players = Object.keys(data.players || {});
+                if (players.length === 0) return alert("참여 중인 플레이어가 없습니다!");
+
+                await vegasRoomRef.update({
+                    status: 'playing',
+                    turn: players[0],
+                    myDiceCounts: players.reduce((acc, p) => ({ ...acc, [p]: 4 }), {})
+                });
             });
 
             // --- 💬 메인 실시간 오픈 채팅 바인딩 ---
