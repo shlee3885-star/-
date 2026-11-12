@@ -871,6 +871,11 @@
                             openModal('vegasGameModal');
                         }
                         updateVegasGameScreen(data);
+                    } else if (data.status === 'ended') {
+                        if (!document.getElementById('vegasGameModal').classList.contains('hidden')) {
+                            closeModal('vegasGameModal');
+                            showVegasResultModal(data);
+                        }
                     }
                 });
             }
@@ -884,9 +889,7 @@
 
                 let initialCasinos = {};
                 for (let i = 1; i <= 6; i++) {
-                    let prizes = [];
-                    let totalPrize = (Math.floor(Math.random() * 5) + 3) * 10; 
-                    prizes.push(totalPrize);
+                    let prizes = [(Math.floor(Math.random() * 4) + 2) * 10]; // 20~50만 달러 상금
                     initialCasinos[i] = { prizes: prizes, bets: {} };
                 }
 
@@ -900,7 +903,7 @@
                 });
             });
 
-            // 주사위 굴리기 버튼 핸들러 (최대 4개)
+            // 주사위 굴리기 버튼 핸들러 (정확히 4개)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -910,10 +913,10 @@
                 let currentRolls = (data.currentRolls && data.currentRolls[vegasNickname]) || [];
 
                 if (currentRolls.length > 0) {
-                    return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 카지노 판에 먼저 배치해주세요.");
+                    return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 먼저 배치해주세요.");
                 }
 
-                if (myDiceLeft <= 0) return alert("이번 라운드에 사용할 수 있는 주사위가 모두 소진되었습니다!");
+                if (myDiceLeft <= 0) return alert("이번 게임에 사용할 수 있는 주사위(4개)가 모두 소진되었습니다!");
 
                 let rollCount = Math.min(4, myDiceLeft);
                 let rolled = [];
@@ -957,17 +960,30 @@
                 let allRolls = data.currentRolls || {};
                 allRolls[vegasNickname] = remainingRolls;
 
-                let myDiceLeft = (data.myDiceCounts && data.myDiceCounts[vegasNickname]) || 0;
-
+                let myDiceCounts = data.myDiceCounts || {};
+                let players = data.playersList || Object.keys(data.players || {});
+                
                 let updatePayload = {
                     casinos: casinos,
                     currentRolls: allRolls
                 };
 
-                if (remainingRolls.length === 0 && myDiceLeft <= 0) {
-                    let players = data.playersList || Object.keys(data.players || {});
-                    let currentIndex = players.indexOf(vegasNickname);
-                    updatePayload.turn = players[(currentIndex + 1) % players.length];
+                // 만약 현재 굴린 주사위를 모두 배치했고, 내 남은 주사위도 0개라면 다음 플레이어로 턴 넘김
+                if (remainingRolls.length === 0) {
+                    let allDiceExhausted = true;
+                    players.forEach(p => {
+                        let left = (myDiceCounts[p] ?? 4);
+                        let rolls = (allRolls[p] || []).length;
+                        if (left > 0 || rolls > 0) allDiceExhausted = false;
+                    });
+
+                    if (allDiceExhausted) {
+                        // 🌟 모든 플레이어의 주사위가 소진되었을 때 정산 실시!
+                        updatePayload.status = 'ended';
+                    } else {
+                        let currentIndex = players.indexOf(vegasNickname);
+                        updatePayload.turn = players[(currentIndex + 1) % players.length];
+                    }
                 }
 
                 await vegasRoomRef.update(updatePayload);
@@ -1029,6 +1045,47 @@
                         casinoBoard.appendChild(card);
                     }
                 }
+            }
+
+            // 정산 및 결과 창 표시 함수
+            function showVegasResultModal(data) {
+                let scores = {};
+                let players = data.playersList || Object.keys(data.players || {});
+                players.forEach(p => scores[p] = 0);
+
+                let reportHtml = "";
+                let casinos = data.casinos || {};
+
+                for (let i = 1; i <= 6; i++) {
+                    let cData = casinos[i];
+                    if (!cData || !cData.bets) continue;
+
+                    let bets = cData.bets;
+                    // 플레이어별 주사위 개수 내림차순 정렬 (동점자 처리 규칙 간소화: 개수 많은 순)
+                    let sortedBets = Object.keys(bets).map(p => ({ player: p, count: bets[p] })).sort((a, b) => b.count - a.count);
+
+                    reportHtml += `<div style="margin-bottom:8px; border-bottom:1px dashed #ddd; padding-bottom:4px;"><strong>카지노 ${i}번 (상금 $${cData.prizes.join()}만)</strong>`;
+                    
+                    if (sortedBets.length > 0) {
+                        let topPlayer = sortedBets[0].player;
+                        let prize = cData.prizes[0] || 40;
+                        scores[topPlayer] += prize;
+                        reportHtml += `<br>🥇 1위: ${topPlayer} (${sortedBets[0].count개}) 👉 상금 $${prize}만 획득!`;
+                    }
+                    reportHtml += `</div>`;
+                }
+
+                // 최종 점수 순위 정렬
+                let finalRanking = players.map(p => ({ player: p, score: scores[p] })).sort((a, b) => b.score - a.score);
+                let scoreBoardHtml = `<h3 style="margin-top:0; color:#3f51b5;">💵 최종 상금 정산 결과</h3>`;
+                finalRanking.forEach((item, idx) => {
+                    scoreBoardHtml += `<div class="ranking-item"><span>${idx + 1등: ${item.player}</span><span style="color:#2196F3;">$${item.score}만 달러</span></div>`;
+                });
+
+                scoreBoardHtml += `<hr style="margin:10px 0;"><strong>카지노별 상세 내역:</strong><div style="font-size:12px; margin-top:5px;">${reportHtml}</div>`;
+
+                document.getElementById('finalScoreBoard').innerHTML = scoreBoardHtml;
+                openModal('vegasResultModal');
             }
 
             // --- 회원가입 및 미니게임 구동 ---
