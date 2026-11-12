@@ -313,7 +313,7 @@
             <div id="gameTurnBox" style="font-size: 12px; font-weight: bold; color: #e65100; background: #fff8e1; padding: 5px; border-radius: 4px;">턴 정보 로딩 중...</div>
 
             <div style="background: #f1f8e9; padding: 6px; border-radius: 8px;">
-                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 6px 14px; border: 2px solid #4CAF50; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px; transition: 0.2s;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">8</span>개) 🎲</button>
+                <button id="rollDiceBtn" style="background-color: #4CAF50; color: white; padding: 6px 14px; border: 2px solid #4CAF50; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px; transition: 0.2s;">주사위 굴리기 (남은 주사위: <span id="myDiceCount">4</span>개) 🎲</button>
                 <div id="diceResultBox" style="font-size: 15px; padding: 4px; min-height: 32px;">주사위를 굴려주세요!</div>
             </div>
 
@@ -875,7 +875,7 @@
                 });
             }
 
-            // 게임 시작: 총 8개 주사위 보유, 6개 카지노 판에 무작위 상금 세팅
+            // 게임 시작: 총 4개 주사위 보유로 통일
             document.getElementById('startGameBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -894,13 +894,13 @@
                     status: 'playing',
                     turn: players[0],
                     playersList: players,
-                    myDiceCounts: players.reduce((acc, p) => ({ ...acc, [p]: 8 }), {}),
-                    currentRolls: {}, // 현재 턴에 굴린 주사위 눈금들 보관
+                    myDiceCounts: players.reduce((acc, p) => ({ ...acc, [p]: 4 }), {}),
+                    currentRolls: {},
                     casinos: initialCasinos
                 });
             });
 
-            // 주사위 굴리기 버튼 핸들러 (최대 4개 굴리기 및 재굴림 지원)
+            // 주사위 굴리기 버튼 핸들러 (최대 4개)
             document.getElementById('rollDiceBtn')?.addEventListener('click', async () => {
                 const snap = await vegasRoomRef.once('value');
                 const data = snap.val() || {};
@@ -909,21 +909,18 @@
                 let myDiceLeft = (data.myDiceCounts && data.myDiceCounts[vegasNickname]) || 0;
                 let currentRolls = (data.currentRolls && data.currentRolls[vegasNickname]) || [];
 
-                // 이미 주사위를 굴려서 나온 눈금들이 남아있다면 새로 안 굴리고 기존 것 배치 유도
                 if (currentRolls.length > 0) {
                     return alert("이미 굴린 주사위 중 배치하지 않은 눈금이 있습니다! 해당 눈금을 카지노 판에 먼저 배치해주세요.");
                 }
 
-                if (myDiceLeft <= 0) return alert("이번 라운드에 사용할 수 있는 주사위가 모두 소진되었습니다! 턴을 넘깁니다.");
+                if (myDiceLeft <= 0) return alert("이번 라운드에 사용할 수 있는 주사위가 모두 소진되었습니다!");
 
-                // 이번에 굴릴 수 있는 최대 개수 (남은 주사위 중 최대 4개)
                 let rollCount = Math.min(4, myDiceLeft);
                 let rolled = [];
                 for (let i = 0; i < rollCount; i++) {
                     rolled.push(Math.floor(Math.random() * 6) + 1);
                 }
 
-                // 남은 주사위 개수 차감 및 굴린 주사위 저장
                 let diceCounts = data.myDiceCounts || {};
                 diceCounts[vegasNickname] = myDiceLeft - rollCount;
 
@@ -943,17 +940,19 @@
                 if (data.turn !== vegasNickname) return;
 
                 let currentRolls = (data.currentRolls && data.currentRolls[vegasNickname]) || [];
-                // 선택한 눈금과 일치하는 주사위들만 추출
                 let matchingDice = currentRolls.filter(d => d === diceNum);
                 if (matchingDice.length === 0) return alert(`현재 굴린 주사위 중 눈금 ${diceNum}이 없습니다!`);
 
                 let casinos = data.casinos || {};
-                if (!casinos[diceNum].bets) casinos[diceNum].bets = {};
+                if (!casinos[diceNum]) {
+                    casinos[diceNum] = { prizes: [40], bets: {} };
+                }
+                if (!casinos[diceNum].bets) {
+                    casinos[diceNum].bets = {};
+                }
                 
-                // 해당 카지노에 내 주사위 누적 배치
                 casinos[diceNum].bets[vegasNickname] = (casinos[diceNum].bets[vegasNickname] || 0) + matchingDice.length;
 
-                // 남은 굴린 주사위에서 선택한 눈금들 제거
                 let remainingRolls = currentRolls.filter(d => d !== diceNum);
                 let allRolls = data.currentRolls || {};
                 allRolls[vegasNickname] = remainingRolls;
@@ -965,15 +964,10 @@
                     currentRolls: allRolls
                 };
 
-                // 만약 이번에 굴린 주사위를 전부 다 배치했고, 아직 남은 주사위가 있다면 계속 턴 유지 (재굴림 가능)
-                // 만약 남은 주사위도 없고 굴린 것도 없다면 다음 사람에게 턴 넘김
-                if (remainingRolls.length === 0) {
-                    if (myDiceLeft <= 0) {
-                        // 모든 주사위를 다 썼으면 다음 플레이어로 턴 넘김
-                        let players = data.playersList || Object.keys(data.players || {});
-                        let currentIndex = players.indexOf(vegasNickname);
-                        updatePayload.turn = players[(currentIndex + 1) % players.length];
-                    }
+                if (remainingRolls.length === 0 && myDiceLeft <= 0) {
+                    let players = data.playersList || Object.keys(data.players || {});
+                    let currentIndex = players.indexOf(vegasNickname);
+                    updatePayload.turn = players[(currentIndex + 1) % players.length];
                 }
 
                 await vegasRoomRef.update(updatePayload);
@@ -989,10 +983,9 @@
                 turnBox.innerText = isMyTurn ? "🔥 [ 내 턴입니다! 주사위를 굴리거나 배치하세요 ]" : `⏳ 상대방(${data.turn}) 턴 대기 중...`;
                 turnBox.style.backgroundColor = isMyTurn ? "#e8f5e9" : "#fff8e1";
 
-                let myDiceLeft = (data.myDiceCounts && data.myDiceCounts[vegasNickname]) ?? 8;
+                let myDiceLeft = (data.myDiceCounts && data.myDiceCounts[vegasNickname]) ?? 4;
                 if (myDiceSpan) myDiceSpan.innerText = myDiceLeft;
 
-                // 현재 굴려진 주사위 상태 렌더링
                 let currentRolls = (data.currentRolls && data.currentRolls[vegasNickname]) || [];
                 if (diceBox) {
                     if (currentRolls.length > 0) {
@@ -1003,7 +996,7 @@
                             let count = currentRolls.filter(d => d === num).length;
                             let btn = document.createElement('div');
                             btn.className = 'dice-selectable';
-                            btn.innerText = `🎲 눈금 ${num} (${count개})`;
+                            btn.innerText = `🎲 눈금 ${num} (${count}개)`;
                             btn.onclick = () => placeDiceToCasino(Number(num));
                             diceBox.appendChild(btn);
                         });
@@ -1012,12 +1005,11 @@
                     }
                 }
 
-                // 6개의 카지노 판 렌더링
                 const casinoBoard = document.getElementById('casinoBoard');
                 if (casinoBoard && data.casinos) {
                     casinoBoard.innerHTML = '';
                     for (let i = 1; i <= 6; i++) {
-                        let cData = data.casinos[i] || { prizes: [], bets: {} };
+                        let cData = data.casinos[i] || { prizes: [40], bets: {} };
                         let card = document.createElement('div');
                         card.className = 'casino-card';
 
@@ -1029,7 +1021,7 @@
 
                         card.innerHTML = `
                             <div style="font-weight:bold; color:#d32f2f;">🎲 카지노 [눈금 ${i}]</div>
-                            <div style="font-size:11px; color:#333;">상금: $${(cData.prizes || [0]).join(', 만')}만</div>
+                            <div style="font-size:11px; color:#333;">상금: $${(cData.prizes || [40]).join(', 만')}만</div>
                             <div style="background:#fff; border-radius:4px; padding:2px; margin-top:2px; min-height:35px; font-size:11px;">
                                 ${betsHtml || '<span style="color:#aaa;">배치 없음</span>'}
                             </div>
